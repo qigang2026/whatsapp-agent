@@ -219,6 +219,21 @@
     gap: 16px;
     margin-bottom: 16px;
   }
+
+  /* ========== Mock 标注徽章（数据真实性 P0 约束） ========== */
+  .mock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: #FFF7E6;
+    color: #D48806;
+    border: 1px solid #FFD591;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+  }
   .kpi-card {
     background: #fff;
     border-radius: 6px;
@@ -467,15 +482,16 @@
 
       <!-- KPI 卡片行 -->
       <div class="kpi-row">
+        <span class="mock-badge" style="grid-column: span 4; margin-bottom: -8px; align-self: end; justify-self: end;">[Mock 数据 · 待 PM 接入]</span>
         <div class="kpi-card kpi-danger" onclick="window.location.href='统一客服收件箱-PC.html?tab=handoff'">
           <div class="kpi-label">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F56C6C" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
             <span>待销售接管</span>
           </div>
-          <div class="kpi-value text-danger">2</div>
+          <div class="kpi-value text-danger">18</div>
           <div class="kpi-foot">
-            <span class="delta-down">↑ 1 较昨日</span>
-            <span>SLA 平均剩 2 分钟</span>
+            <span class="delta-down">↑ 3 较昨日</span>
+            <span>SLA 平均剩 4 分 12 秒</span>
           </div>
         </div>
 
@@ -484,9 +500,9 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#419EFE" stroke-width="2"><rect x="4" y="8" width="16" height="12" rx="2"/><circle cx="9" cy="14" r="1.5"/><circle cx="15" cy="14" r="1.5"/><path d="M12 4v4"/><circle cx="12" cy="3" r="1"/></svg>
             <span>AI 接管中</span>
           </div>
-          <div class="kpi-value text-primary">3</div>
+          <div class="kpi-value text-primary">47</div>
           <div class="kpi-foot">
-            <span class="delta-up">+ 5 较昨日</span>
+            <span class="delta-up">+ 8 较昨日</span>
             <span>自动跟进，无需干预</span>
           </div>
         </div>
@@ -496,9 +512,9 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#67C23A" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
             <span>销售接管</span>
           </div>
-          <div class="kpi-value text-success">4</div>
+          <div class="kpi-value text-success">32</div>
           <div class="kpi-foot">
-            <span class="delta-up">+ 2 较昨日</span>
+            <span class="delta-up">+ 5 较昨日</span>
             <span>人工跟进中</span>
           </div>
         </div>
@@ -508,9 +524,9 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E6A23C" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
             <span>已超时</span>
           </div>
-          <div class="kpi-value text-warning">1</div>
+          <div class="kpi-value text-warning">6</div>
           <div class="kpi-foot">
-            <span class="delta-down">↑ 1 较昨日</span>
+            <span class="delta-down">↑ 2 较昨日</span>
             <span>超过 1h 未响应</span>
           </div>
         </div>
