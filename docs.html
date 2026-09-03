@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>需求文档中心 - WhatsApp AI Sales Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color: rgba(0, 0, 0, 0.88);
+      -webkit-font-smoothing: antialiased;
+      background: #f5f7fa;
+    }
+
+    a { color: #128C7E; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      min-height: 100vh;
+    }
+
+    /* ====== 侧边栏 ====== */
+    aside.sidebar {
+      background: #ffffff;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      position: sticky;
+      top: 0;
+      max-height: 100vh;
+    }
+
+    .sidebar-logo {
+      padding: 20px 24px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .sidebar-logo-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.88);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sidebar-logo-title svg { color: #25D366; }
+
+    .sidebar-logo-sub {
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.45);
+    }
+
+    .sidebar-search {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .sidebar-search input {
+      width: 100%;
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      font-size: 13px;
+      color: rgba(0, 0, 0, 0.88);
+      background: #ffffff;
+      font-family: inherit;
+    }
+
+    .sidebar-search input:focus {
+      outline: none;
+      border-color: #128C7E;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 12px 0;
+      overflow-y: auto;
+    }
+
+    .nav-group {
+      padding: 12px 24px 6px;
+      font-size: 11px;
+      color: rgba(0, 0, 0, 0.45);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 24px;
+      cursor: pointer;
+      font-size: 13px;
+      color: rgba(0, 0, 0, 0.65);
+      border-left: 2px solid transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .nav-item:hover {
+      background: #f5f5f5;
+      color: rgba(0, 0, 0, 0.88);
+      text-decoration: none;
+    }
+
+    .nav-item.active {
+      background: #e8f8f1;
+      color: #128C7E;
+      font-weight: 500;
+      border-left-color: #128C7E;
+    }
+
+    .nav-item .nav-icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      color: currentColor;
+    }
+
+    .nav-item .nav-meta {
+      margin-left: auto;
+      font-size: 11px;
+      color: rgba(0, 0, 0, 0.35);
+    }
+
+    .sidebar-footer {
+      padding: 12px 24px;
+      border-top: 1px solid #f0f0f0;
+      font-size: 11px;
+      color: rgba(0, 0, 0, 0.35);
+      line-height: 1.6;
+    }
+
+    .sidebar-footer a { color: #128C7E; }
+
+    /* ====== 主内容 ====== */
+    main.content {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .topbar {
+      height: 56px;
+      background: #ffffff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .topbar-breadcrumb {
+      font-size: 13px;
+      color: rgba(0, 0, 0, 0.65);
+    }
+
+    .topbar-breadcrumb .separator {
+      margin: 0 8px;
+      color: rgba(0, 0, 0, 0.25);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 12px;
+      height: 30px;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      background: #ffffff;
+      color: rgba(0, 0, 0, 0.65);
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .topbar-btn:hover {
+      border-color: #128C7E;
+      color: #128C7E;
+      text-decoration: none;
+    }
+
+    /* ====== 文档主体 ====== */
+    .doc-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 0;
+    }
+
+    .doc-container {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 0 32px 80px;
+    }
+
+    .doc-loading {
+      text-align: center;
+      padding: 80px 0;
+      color: rgba(0, 0, 0, 0.45);
+      font-size: 14px;
+    }
+
+    .doc-loading::before {
+      content: "";
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      border: 3px solid #f0f0f0;
+      border-top-color: #25D366;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .doc-error {
+      background: #fff1f0;
+      border: 1px solid #ffa39e;
+      color: #cf1322;
+      padding: 16px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .doc-error strong { display: block; margin-bottom: 6px; font-size: 14px; }
+
+    .doc-rendered { display: none; }
+    .doc-rendered.show { display: block; }
+
+    /* ====== Markdown 样式 ====== */
+    .md {
+      font-size: 15px;
+      line-height: 1.75;
+      color: rgba(0, 0, 0, 0.88);
+    }
+
+    .md h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: rgba(0, 0, 0, 0.88);
+      margin: 32px 0 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .md h2 {
+      font-size: 22px;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.88);
+      margin: 40px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #f5f5f5;
+    }
+
+    .md h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.88);
+      margin: 28px 0 10px;
+    }
+
+    .md h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.88);
+      margin: 20px 0 8px;
+    }
+
+    .md p { margin: 12px 0; }
+
+    .md strong { font-weight: 600; color: rgba(0, 0, 0, 0.88); }
+    .md em { font-style: italic; color: rgba(0, 0, 0, 0.65); }
+
+    .md ul, .md ol {
+      margin: 12px 0;
+      padding-left: 24px;
+    }
+
+    .md li { margin: 6px 0; }
+    .md li > p { margin: 4px 0; }
+
+    .md hr {
+      border: none;
+      border-top: 1px solid #f0f0f0;
+      margin: 28px 0;
+    }
+
+    /* ====== 代码块 ====== */
+    .md code {
+      background: #f5f5f5;
+      border: 1px solid #f0f0f0;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 0.88em;
+      color: #d4380d;
+    }
+
+    .md pre {
+      background: #1f2937;
+      color: #e5e7eb;
+      padding: 16px 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 16px 0;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .md pre code {
+      background: transparent;
+      border: none;
+      padding: 0;
+      color: inherit;
+      font-size: 13px;
+    }
+
+    /* ====== 引用 ====== */
+    .md blockquote {
+      background: #e8f8f1;
+      border-left: 3px solid #25D366;
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 0 6px 6px 0;
+      color: rgba(0, 0, 0, 0.75);
+    }
+
+    .md blockquote p { margin: 4px 0; }
+    .md blockquote p:first-child { margin-top: 0; }
+    .md blockquote p:last-child { margin-bottom: 0; }
+
+    /* ====== 表格 ====== */
+    .md table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 13px;
+      border: 1px solid #e7ebf3;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .md thead { background: #fafbfc; }
+
+    .md th {
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.85);
+      border-bottom: 1px solid #e7ebf3;
+      white-space: nowrap;
+    }
+
+    .md td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      color: rgba(0, 0, 0, 0.75);
+      vertical-align: top;
+    }
+
+    .md tbody tr:last-child td { border-bottom: none; }
+    .md tbody tr:hover { background: #fafbfc; }
+
+    /* ====== 链接 ====== */
+    .md a {
+      color: #128C7E;
+      text-decoration: none;
+      border-bottom: 1px dashed #b8e6cc;
+    }
+
+    .md a:hover { border-bottom-style: solid; }
+
+    /* ====== 响应式 ====== */
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      aside.sidebar {
+        position: relative;
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .doc-container { padding: 0 16px 60px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ====== 侧边栏 ====== -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+          </svg>
+          需求文档中心
+        </div>
+        <div class="sidebar-logo-sub">WhatsApp AI Sales Agent · 2026-09-03</div>
+      </div>
+
+      <div class="sidebar-search">
+        <input type="text" id="searchInput" placeholder="搜索文档标题..." />
+      </div>
+
+      <nav class="sidebar-nav" id="sidebarNav">
+        <div class="nav-group">🚀 入口</div>
+        <a class="nav-item" href="index.html">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span>原型入口</span>
+          <span class="nav-meta">index.html</span>
+        </a>
+
+        <div class="nav-group">📄 业务主权威</div>
+        <a class="nav-item" href="AutoCava_MStar_墨西哥新车销售与金融线索跟进SOP_2026版.md" data-doc="sop">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          <span>SOP · 销售跟进标准</span>
+          <span class="nav-meta">主权威</span>
+        </a>
+
+        <div class="nav-group">📐 战略规划</div>
+        <a class="nav-item" href="CAVi AI Sales Agent 主动跟进规划.md" data-doc="plan">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+          </svg>
+          <span>AI 主动跟进规划</span>
+          <span class="nav-meta">战略</span>
+        </a>
+        <a class="nav-item" href="CAVi销售agent 场景规则.md" data-doc="scenes">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          <span>销售 Agent 场景规则</span>
+          <span class="nav-meta">场景</span>
+        </a>
+
+        <div class="nav-group">🎯 决策文档 (Decisions)</div>
+        <a class="nav-item" href="docs/decisions/AI跟进-边界场景梳理.md" data-doc="boundary">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>AI 跟进 · 边界场景梳理</span>
+          <span class="nav-meta">25 边界场景</span>
+        </a>
+        <a class="nav-item" href="docs/decisions/用户跟进规则.md" data-doc="follow-rules">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+          <span>用户跟进规则</span>
+          <span class="nav-meta">策略</span>
+        </a>
+
+        <div class="nav-group">🏗️ 架构文档 (Architecture)</div>
+        <a class="nav-item" href="docs/architecture/WA-平台约束-架构应对.md" data-doc="arch-wa">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          <span>WA 平台约束 · 架构应对</span>
+          <span class="nav-meta">配额 / 评级</span>
+        </a>
+
+        <div class="nav-group">📋 PRD · 业务方案</div>
+        <a class="nav-item" href="docs/PRD-内嵌H5方案.md" data-doc="h5-prd">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+            <line x1="12" y1="18" x2="12.01" y2="18"/>
+          </svg>
+          <span>内嵌 H5 方案 PRD</span>
+          <span class="nav-meta">PRD</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        WhatsApp AI Sales Agent · MVP-1 · 由 docs.html 提供渲染
+      </div>
+    </aside>
+
+    <!-- ====== 主内容 ====== -->
+    <main class="content">
+      <header class="topbar">
+        <div class="topbar-breadcrumb" id="breadcrumb">
+          <span>文档中心</span>
+          <span class="separator">/</span>
+          <span id="currentDocName">请从左侧选择</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="topbar-btn" id="copyRawBtn" title="复制原始 Markdown">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            复制原文
+          </button>
+          <a class="topbar-btn" id="rawLink" href="docs/decisions/AI跟进-边界场景梳理.md" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            打开源文件
+          </a>
+        </div>
+      </header>
+
+      <div class="doc-body">
+        <div class="doc-container">
+          <div class="doc-loading" id="loadingState" style="display:none;">正在加载文档...</div>
+          <div class="doc-error" id="errorState" style="display:none;"></div>
+          <article class="md doc-rendered" id="docContent"></article>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const $ = (s) => document.querySelector(s);
+      const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+      // ====== 文档列表（与侧边栏对应） ======
+      const docs = {
+        'sop': {
+          name: 'SOP · 销售跟进标准',
+          url: 'AutoCava_MStar_墨西哥新车销售与金融线索跟进SOP_2026版.md',
+          path: null,
+        },
+        'plan': {
+          name: 'AI 主动跟进规划',
+          url: 'CAVi AI Sales Agent 主动跟进规划.md',
+          path: null,
+        },
+        'scenes': {
+          name: '销售 Agent 场景规则',
+          url: 'CAVi销售agent 场景规则.md',
+          path: null,
+        },
+        'boundary': {
+          name: 'AI 跟进 · 边界场景梳理',
+          url: 'docs/decisions/AI跟进-边界场景梳理.md',
+          path: null,
+        },
+        'follow-rules': {
+          name: '用户跟进规则',
+          url: 'docs/decisions/用户跟进规则.md',
+          path: null,
+        },
+        'arch-wa': {
+          name: 'WA 平台约束 · 架构应对',
+          url: 'docs/architecture/WA-平台约束-架构应对.md',
+          path: null,
+        },
+        'h5-prd': {
+          name: '内嵌 H5 方案 PRD',
+          url: 'docs/PRD-内嵌H5方案.md',
+          path: null,
+        },
+      };
+
+      let currentDocRaw = '';
+      let currentDocKey = '';
+
+      // ====== 简易 Markdown 渲染器 ======
+      function escapeHtml(s) {
+        return s
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function renderInline(s) {
+        return s
+          .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" style="max-width:100%;">')
+          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+          .replace(/`([^`]+)`/g, '<code>$1</code>')
+          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+          .replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1<em>$2</em>')
+          .replace(/~~([^~]+)~~/g, '<del>$1</del>');
+      }
+
+      function renderMarkdown(md) {
+        const lines = md.split('\n');
+        const out = [];
+        let i = 0;
+        let inCodeBlock = false;
+        let codeLang = '';
+        let codeBuf = [];
+
+        while (i < lines.length) {
+          const line = lines[i];
+
+          if (/^```/.test(line)) {
+            if (!inCodeBlock) {
+              inCodeBlock = true;
+              codeLang = line.replace(/^```/, '').trim();
+              codeBuf = [];
+            } else {
+              inCodeBlock = false;
+              out.push(`<pre><code class="lang-${escapeHtml(codeLang)}">${escapeHtml(codeBuf.join('\n'))}</code></pre>`);
+            }
+            i++;
+            continue;
+          }
+          if (inCodeBlock) {
+            codeBuf.push(line);
+            i++;
+            continue;
+          }
+
+          if (/^---+$/.test(line.trim())) {
+            out.push('<hr>');
+            i++;
+            continue;
+          }
+
+          const h = line.match(/^(#{1,6})\s+(.+)$/);
+          if (h) {
+            const level = h[1].length;
+            const text = h[2].trim();
+            out.push(`<h${level}>${renderInline(escapeHtml(text))}</h${level}>`);
+            i++;
+            continue;
+          }
+
+          if (/^>\s?/.test(line)) {
+            const quoteLines = [];
+            while (i < lines.length && /^>\s?/.test(lines[i])) {
+              quoteLines.push(lines[i].replace(/^>\s?/, ''));
+              i++;
+            }
+            out.push(`<blockquote>${quoteLines.map(l => `<p>${renderInline(escapeHtml(l))}</p>`).join('')}</blockquote>`);
+            continue;
+          }
+
+          if (/^\|.*\|$/.test(line) && i + 1 < lines.length && /^\|[\s\-:|]+\|$/.test(lines[i + 1])) {
+            const headerCells = line.split('|').slice(1, -1).map(c => c.trim());
+            i += 2;
+            const rows = [];
+            while (i < lines.length && /^\|.*\|$/.test(lines[i])) {
+              const rowCells = lines[i].split('|').slice(1, -1).map(c => c.trim());
+              rows.push(rowCells);
+              i++;
+            }
+            out.push('<table>');
+            out.push('<thead><tr>' + headerCells.map(c => `<th>${renderInline(escapeHtml(c))}</th>`).join('') + '</tr></thead>');
+            out.push('<tbody>');
+            rows.forEach(row => {
+              out.push('<tr>' + row.map(c => `<td>${renderInline(escapeHtml(c))}</td>`).join('') + '</tr>');
+            });
+            out.push('</tbody></table>');
+            continue;
+          }
+
+          if (/^\s*-\s+\[[ x]\]\s+/.test(line)) {
+            const items = [];
+            while (i < lines.length && /^\s*-\s+\[[ x]\]\s+/.test(lines[i])) {
+              const checked = /\[[x]\]/i.test(lines[i]);
+              const text = lines[i].replace(/^\s*-\s+\[[ x]\]\s+/, '');
+              items.push(`<li><input type="checkbox" disabled ${checked ? 'checked' : ''}>${renderInline(escapeHtml(text))}</li>`);
+              i++;
+            }
+            out.push('<ul>' + items.join('') + '</ul>');
+            continue;
+          }
+
+          if (/^\s*-\s+/.test(line) || /^\s*\*\s+/.test(line)) {
+            const items = [];
+            while (i < lines.length && (/^\s*-\s+/.test(lines[i]) || /^\s*\*\s+/.test(lines[i]))) {
+              const text = lines[i].replace(/^\s*[-*]\s+/, '');
+              items.push(`<li>${renderInline(escapeHtml(text))}</li>`);
+              i++;
+            }
+            out.push('<ul>' + items.join('') + '</ul>');
+            continue;
+          }
+
+          if (/^\s*\d+\.\s+/.test(line)) {
+            const items = [];
+            while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+              const text = lines[i].replace(/^\s*\d+\.\s+/, '');
+              items.push(`<li>${renderInline(escapeHtml(text))}</li>`);
+              i++;
+            }
+            out.push('<ol>' + items.join('') + '</ol>');
+            continue;
+          }
+
+          if (line.trim() === '') {
+            i++;
+            continue;
+          }
+
+          const paraLines = [];
+          while (i < lines.length && lines[i].trim() !== '' && !/^(#{1,6}\s|>\s|-\s|\*\s|\d+\.\s|\||```|---\s*$)/.test(lines[i])) {
+            paraLines.push(lines[i]);
+            i++;
+          }
+          if (paraLines.length) {
+            out.push(`<p>${renderInline(escapeHtml(paraLines.join('\n')))}</p>`);
+          }
+        }
+
+        return out.join('\n');
+      }
+
+      // ====== 加载文档 ======
+      async function loadDoc(key) {
+        const doc = docs[key];
+        if (!doc) return;
+
+        currentDocKey = key;
+        const loading = $('#loadingState');
+        const error = $('#errorState');
+        const content = $('#docContent');
+
+        loading.style.display = 'block';
+        error.style.display = 'none';
+        content.classList.remove('show');
+        content.innerHTML = '';
+
+        $$('.nav-item[data-doc]').forEach((n) => n.classList.toggle('active', n.dataset.doc === key));
+        $('#currentDocName').textContent = doc.name;
+        $('#rawLink').href = doc.url;
+
+        try {
+          const resp = await fetch(doc.url);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const md = await resp.text();
+          currentDocRaw = md;
+          loading.style.display = 'none';
+          content.innerHTML = renderMarkdown(md);
+          content.classList.add('show');
+          $('.doc-body').scrollTop = 0;
+        } catch (e) {
+          loading.style.display = 'none';
+          error.style.display = 'block';
+          error.innerHTML = `<strong>⚠ 加载失败</strong>无法加载文档 <code>${doc.url}</code>：${e.message}<br>请检查文件是否存在或网络是否正常。`;
+        }
+      }
+
+      // ====== 事件绑定 ======
+      function bindEvents() {
+        $$('.nav-item[data-doc]').forEach((item) => {
+          item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const key = item.dataset.doc;
+            window.location.hash = key;
+            loadDoc(key);
+          });
+        });
+
+        $('#searchInput').addEventListener('input', (e) => {
+          const kw = e.target.value.toLowerCase().trim();
+          $$('.nav-item').forEach((item) => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = !kw || text.includes(kw) ? '' : 'none';
+          });
+        });
+
+        $('#copyRawBtn').addEventListener('click', async () => {
+          if (!currentDocRaw) return;
+          try {
+            await navigator.clipboard.writeText(currentDocRaw);
+            const btn = $('#copyRawBtn');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '✓ 已复制';
+            setTimeout(() => { btn.innerHTML = orig; }, 1500);
+          } catch (e) {
+            alert('复制失败：' + e.message);
+          }
+        });
+      }
+
+      // ====== 初始化 ======
+      function init() {
+        bindEvents();
+        const hash = window.location.hash.replace('#', '');
+        const initialKey = docs[hash] ? hash : 'boundary';
+        loadDoc(initialKey);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
