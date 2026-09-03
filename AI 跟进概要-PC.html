@@ -294,6 +294,96 @@
   .kpi-foot .delta-up { color: var(--success); }
   .kpi-foot .delta-down { color: var(--danger); }
 
+  /* ========== AI 与客户交互规则表 ========== */
+  .rule-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .rule-table thead th {
+    background: var(--bg-base);
+    color: var(--text-regular);
+    font-weight: 600;
+    font-size: 12px;
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 2px solid var(--border-light);
+    white-space: nowrap;
+  }
+  .rule-table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-extra-light);
+    vertical-align: top;
+    color: var(--text-main);
+  }
+  .rule-table tbody tr:hover { background: var(--bg-base); }
+  .rule-table code {
+    background: var(--bg-base);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: var(--danger);
+    border: 1px solid var(--border-lighter);
+  }
+
+  /* 行号 */
+  .rule-num {
+    display: inline-block;
+    min-width: 24px;
+    padding: 2px 6px;
+    background: var(--bg-base);
+    color: var(--text-secondary);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  /* 生命周期阶段标签 */
+  .stage-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+    border: 1px solid;
+  }
+  .stage-inbound { background: #E6F4FF; color: #1890FF; border-color: #91D5FF; }
+  .stage-first { background: #F0F9E8; color: #67C23A; border-color: #C2E7B0; }
+  .stage-incubate { background: #ECF5FF; color: #419EFE; border-color: #B3D8FF; }
+  .stage-intent { background: #FFF7E6; color: #E6A23C; border-color: #FFD591; }
+  .stage-precheck { background: #EDE7FF; color: #7C4DFF; border-color: #C5B0FF; }
+  .stage-mstar { background: #E8F8F1; color: #128C7E; border-color: #B8E6CC; }
+  .stage-handoff { background: #FFF7E6; color: #D48806; border-color: #FFD591; }
+  .stage-deal { background: #F0F9E8; color: #67C23A; border-color: #C2E7B0; }
+  .stage-lost { background: #FEF0F0; color: #F56C6C; border-color: #FBC4C4; }
+  .stage-deferred { background: #FFF7E6; color: #D48806; border-color: #FFD591; }
+  .stage-reactivate { background: #E8F8F1; color: #128C7E; border-color: #B8E6CC; }
+  .stage-close { background: #F4F4F5; color: #909399; border-color: #DCDFE6; }
+  .stage-anomaly { background: #FEF0F0; color: #F56C6C; border-color: #FBC4C4; }
+
+  /* 24h 窗口状态 */
+  .win-open { color: var(--success); font-weight: 600; }
+  .win-closed { color: var(--danger); font-weight: 600; }
+  .win-state { color: var(--text-secondary); font-size: 12px; }
+  .win-na { color: var(--text-placeholder); }
+
+  /* 触发主体 */
+  .actor-ai { color: #419EFE; font-weight: 600; }
+  .actor-sales { color: #E6A23C; font-weight: 600; }
+  .actor-system { color: #909399; font-weight: 600; }
+
+  /* 消息类型 */
+  .msg-text { color: var(--success); font-weight: 600; }
+  .msg-hsm { color: var(--primary); font-weight: 600; }
+  .msg-mix { color: var(--warning); font-weight: 600; font-size: 12px; }
+  .msg-handoff { color: var(--danger); font-weight: 600; }
+  .msg-none { color: var(--text-placeholder); font-weight: 600; }
+
   /* ========== 图表区 ========== */
   .charts-row {
     display: grid;
@@ -529,6 +619,300 @@
             <span class="delta-down">↑ 2 较昨日</span>
             <span>超过 1h 未响应</span>
           </div>
+        </div>
+      </div>
+
+      <!-- AI 主动跟进 · 交互规则表（按"生命周期 × 窗口状态 × 触发主体"梳理 25 种交互） -->
+      <div class="card" style="margin-bottom: 16px;">
+        <div class="card-header">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span style="font-weight: 600; font-size: 15px;">AI 与客户交互规则表</span>
+            <span class="mock-badge" style="margin-left: 8px;">25 种交互状态位 · 含 ycloud 24h 窗口机制 + SOP 节奏</span>
+          </div>
+          <div class="actions">
+            <span class="link-btn">导出规则</span>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto; margin: 0 -4px;">
+          <table class="rule-table">
+            <thead>
+              <tr>
+                <th style="width: 60px;">#</th>
+                <th style="width: 110px;">生命周期阶段</th>
+                <th style="width: 160px;">触发时机</th>
+                <th style="width: 100px;">24h 窗口</th>
+                <th style="width: 90px;">触发主体</th>
+                <th style="width: 110px;">消息类型</th>
+                <th>具体动作 / 备注</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- ========== 首次接触 ========== -->
+              <tr>
+                <td><span class="rule-num">1</span></td>
+                <td><span class="stage-tag stage-inbound">陌生 WA inbound</span></td>
+                <td>客户主动发来消息</td>
+                <td><span class="win-open">窗口刚开</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>ycloud 规则：客户 inbound 立即开 24h 窗口，AI 可自由回复</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">2</span></td>
+                <td><span class="stage-tag stage-first">首次跟进</span></td>
+                <td>T0 留资线索进入 CRM</td>
+                <td><span class="win-open">窗口已开</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>SOP §2.2 · 5–15 分钟首触；西语模板见 SOP #1-#9</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">3</span></td>
+                <td><span class="stage-tag stage-first">首次跟进</span></td>
+                <td>HSM 模板被拒批 / 发送 failed</td>
+                <td><span class="win-na">—</span></td>
+                <td><span class="actor-sales">销售手动</span></td>
+                <td><span class="msg-handoff">转人工</span></td>
+                <td>SOP §10 · Failed 单独闭环；不要让 AI 自动重试</td>
+              </tr>
+
+              <!-- ========== 用户孵化（D+1 / D+3 / D+7）========== -->
+              <tr>
+                <td><span class="rule-num">4</span></td>
+                <td><span class="stage-tag stage-incubate">用户孵化</span></td>
+                <td>D+1 首触后 24h 无回复</td>
+                <td><span class="win-closed">窗口已关</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-hsm">HSM 模板</span></td>
+                <td>SOP #50 · "Hola [Nombre]. Ayer vi..." 轻提醒，不重复长介绍</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">5</span></td>
+                <td><span class="stage-tag stage-incubate">用户孵化</span></td>
+                <td>D+3 连续 3 天无回复</td>
+                <td><span class="win-closed">窗口已关</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-hsm">HSM 模板</span></td>
+                <td>SOP #51 · "Le doy seguimiento a su plan de compra..." 换价值点</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">6</span></td>
+                <td><span class="stage-tag stage-close">关闭收口</span></td>
+                <td>D+7 多次无回复</td>
+                <td><span class="win-closed">窗口已关</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-hsm">HSM 模板</span></td>
+                <td>SOP #52 · 礼貌收口话术 + 含 <code>STOP</code> 关键字提示</td>
+              </tr>
+
+              <!-- ========== 意向识别 ========== -->
+              <tr>
+                <td><span class="rule-num">7</span></td>
+                <td><span class="stage-tag stage-intent">意向识别</span></td>
+                <td>客户在窗口内问车型 / 价格</td>
+                <td><span class="win-open">窗口内</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>SOP §3.1 / §3.2 · 先回答价格再引导</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">8</span></td>
+                <td><span class="stage-tag stage-handoff">转人工</span></td>
+                <td>客户说 "quiero hablar con una persona"</td>
+                <td><span class="win-open">窗口内</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>SOP #54 · AI 立即回复 + 立即触发 handoff</td>
+              </tr>
+
+              <!-- ========== 预审收集 ========== -->
+              <tr>
+                <td><span class="rule-num">9</span></td>
+                <td><span class="stage-tag stage-precheck">预审收集</span></td>
+                <td>AI 主动推送材料清单</td>
+                <td><span class="win-state">取决于上一条</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-mix">自由/HSM</span></td>
+                <td>SOP §5.1 · 窗口内自由文本，窗口外 HSM</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">10</span></td>
+                <td><span class="stage-tag stage-precheck">预审收集</span></td>
+                <td>客户 2-4h 未点链接</td>
+                <td><span class="win-open">窗口内</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>SOP §6.1 · 轻询问是否卡住；不重复推送</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">11</span></td>
+                <td><span class="stage-tag stage-precheck">预审收集</span></td>
+                <td>客户看不懂材料（INE / RFC）</td>
+                <td><span class="win-open">窗口内</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-mix">自由+转人工</span></td>
+                <td>SOP §5.2 · AI 解释一次，看不懂转人工</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">12</span></td>
+                <td><span class="stage-tag stage-precheck">预审收集</span></td>
+                <td>客户拒绝提供材料</td>
+                <td><span class="win-open">窗口内</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>§5.1 · 说明用途 + 询问顾虑；仍拒绝则转人工</td>
+              </tr>
+
+              <!-- ========== 转 MStar / 审核结果 ========== -->
+              <tr>
+                <td><span class="rule-num">13</span></td>
+                <td><span class="stage-tag stage-mstar">转 MStar</span></td>
+                <td>AI 识别"客户可推进" + 客户同意</td>
+                <td><span class="win-open">窗口内</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>SOP §4.1 / §4.2 · 触发 MStar 接管 + 摘要交接</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">14</span></td>
+                <td><span class="stage-tag stage-mstar">转 MStar</span></td>
+                <td>MStar 顾问 24h 未联系客户</td>
+                <td><span class="win-open">窗口内</span></td>
+                <td><span class="actor-sales">销售手动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>SOP #43 · 销售主动询问客户是否收到 MStar 联系</td>
+              </tr>
+
+              <!-- ========== 结果态：成交 / 战败 / 失活 / 暂缓 ========== -->
+              <tr>
+                <td><span class="rule-num">15</span></td>
+                <td><span class="stage-tag stage-deal">成交判定</span></td>
+                <td>客户明确说 "ya compré"</td>
+                <td><span class="win-open">窗口内</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>SOP §7.1 · 标记成交 + 通知销售 + 停止 AI 跟进</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">16</span></td>
+                <td><span class="stage-tag stage-lost">战败</span></td>
+                <td>客户说 "no me interesa"</td>
+                <td><span class="win-open">窗口内</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>SOP §7.1 关闭 · 记录关闭原因 = "明确拒绝"</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">17</span></td>
+                <td><span class="stage-tag stage-lost">战败</span></td>
+                <td>客户说 "不要再联系我" / 骚扰</td>
+                <td><span class="win-open">窗口内</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>SOP #55 · 关闭 + <strong>永久黑名单</strong> + 永不重发</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">18</span></td>
+                <td><span class="stage-tag stage-lost">失活</span></td>
+                <td>D+7 收口后 30+ 天未回</td>
+                <td><span class="win-closed">窗口已关</span></td>
+                <td><span class="actor-ai">AI 不发</span></td>
+                <td><span class="msg-none">不发</span></td>
+                <td>SOP §7.1 关闭 · 保留历史，等待再激活或客户主动联系</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">19</span></td>
+                <td><span class="stage-tag stage-deferred">暂缓</span></td>
+                <td>客户说 "过几个月再买"</td>
+                <td><span class="win-open">窗口内</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>SOP §6.2 低/培育 · 记录再激活时间 + 客户指定日期</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">20</span></td>
+                <td><span class="stage-tag stage-deferred">暂缓</span></td>
+                <td>暂缓期满 → AI 主动 re-engage</td>
+                <td><span class="win-closed">窗口已关</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-hsm">HSM 模板</span></td>
+                <td>再激活话术 · 客户主动联系版见 SOP #53，AI 主动版需 PM 决策</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">21</span></td>
+                <td><span class="stage-tag stage-reactivate">再激活</span></td>
+                <td>暂缓 / 失活客户主动回复</td>
+                <td><span class="win-open">窗口刚开</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-text">自由文本</span></td>
+                <td>SOP #53 · 从历史上下文继续，避免重复询问</td>
+              </tr>
+
+              <!-- ========== 异常态 ========== -->
+              <tr>
+                <td><span class="rule-num">22</span></td>
+                <td><span class="stage-tag stage-anomaly">撞单</span></td>
+                <td>同一号码被多条线索关联</td>
+                <td><span class="win-na">—</span></td>
+                <td><span class="actor-sales">销售手动</span></td>
+                <td><span class="msg-none">不发</span></td>
+                <td>D7 决策点 · 先内部锁单，避免重复触达</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">23</span></td>
+                <td><span class="stage-tag stage-anomaly">禁联系名单</span></td>
+                <td>历史 "明确拒绝" 客户再次留资</td>
+                <td><span class="win-na">—</span></td>
+                <td><span class="actor-system">系统拦截</span></td>
+                <td><span class="msg-none">不发</span></td>
+                <td>D4 决策点 · CRM blocklist 系统级拦截</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">24</span></td>
+                <td><span class="stage-tag stage-anomaly">已读不回</span></td>
+                <td>客户已读但 24h 不回</td>
+                <td><span class="win-closed">窗口已关</span></td>
+                <td><span class="actor-ai">AI 自动</span></td>
+                <td><span class="msg-hsm">HSM 模板</span></td>
+                <td>D3 决策点 · 走 D+1 节奏，但话术强调"已读未回"</td>
+              </tr>
+              <tr>
+                <td><span class="rule-num">25</span></td>
+                <td><span class="stage-tag stage-anomaly">撤回消息</span></td>
+                <td>webhook <code>deleted</code> 回调</td>
+                <td><span class="win-na">—</span></td>
+                <td><span class="actor-system">系统同步</span></td>
+                <td><span class="msg-none">不发</span></td>
+                <td>ycloud 文档 · 仅同步删除本地副本，不追问客户</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 图例 -->
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border-lighter); display: flex; flex-wrap: wrap; gap: 12px 20px; font-size: 12px; color: var(--text-secondary);">
+          <span><strong>生命周期阶段：</strong></span>
+          <span><span class="stage-tag stage-inbound" style="margin-right: 4px;">·</span>陌生 inbound</span>
+          <span><span class="stage-tag stage-first" style="margin-right: 4px;">·</span>首次跟进</span>
+          <span><span class="stage-tag stage-incubate" style="margin-right: 4px;">·</span>用户孵化</span>
+          <span><span class="stage-tag stage-intent" style="margin-right: 4px;">·</span>意向识别</span>
+          <span><span class="stage-tag stage-precheck" style="margin-right: 4px;">·</span>预审收集</span>
+          <span><span class="stage-tag stage-mstar" style="margin-right: 4px;">·</span>转 MStar</span>
+          <span><span class="stage-tag stage-handoff" style="margin-right: 4px;">·</span>转人工</span>
+          <span><span class="stage-tag stage-deal" style="margin-right: 4px;">·</span>成交</span>
+          <span><span class="stage-tag stage-lost" style="margin-right: 4px;">·</span>战败/失活</span>
+          <span><span class="stage-tag stage-deferred" style="margin-right: 4px;">·</span>暂缓</span>
+          <span><span class="stage-tag stage-reactivate" style="margin-right: 4px;">·</span>再激活</span>
+          <span><span class="stage-tag stage-close" style="margin-right: 4px;">·</span>关闭</span>
+          <span><span class="stage-tag stage-anomaly" style="margin-right: 4px;">·</span>异常</span>
+        </div>
+
+        <div style="margin-top: 12px; padding: 12px; background: var(--warning-soft-bg); border-left: 3px solid var(--warning); border-radius: 4px; font-size: 12px; color: var(--text-regular);">
+          <strong>⚠️ 关键约束（ycloud 平台）：</strong>24 小时客户窗口由客户上一条入站消息决定。窗口外发自由格式消息会被 WA 平台拒收 → <code>failed</code> 回调。<strong>必须用 HSM 模板</strong>。SOP 节奏点 T0 / D+1 / D+3 / D+7 中，只有 T0 是在窗口内的（来自 inbound 或登记触发）。
         </div>
       </div>
 
