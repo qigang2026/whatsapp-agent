@@ -936,6 +936,35 @@
     min-width: 0;
   }
   .profile-field-value.link { color: var(--primary); }
+
+  /* ========== 预审信息收集进度 ========== */
+  .precheck-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    background: var(--primary-soft-bg);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-regular);
+  }
+  .precheck-progress strong { color: var(--primary); font-weight: 600; }
+  .precheck-group-title {
+    font-size: 11px;
+    color: var(--text-placeholder);
+    margin: 10px 0 4px;
+    font-weight: 600;
+  }
+  .precheck-status-done { color: var(--success); font-size: 12px; font-weight: 500; }
+  .precheck-status-miss { color: var(--danger); font-size: 12px; }
+  .precheck-status-sys { color: var(--text-secondary); font-size: 12px; }
+  .precheck-hint {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text-placeholder);
+    line-height: 1.5;
+  }
   .profile-tag-cloud {
     display: flex;
     flex-wrap: wrap;
@@ -1429,12 +1458,13 @@ Vimos que estás interesado en el XPENG G6. ¿Tienes 2 minutos para ayudarte a e
           </div>
           <div class="msg-bubble">¡Claro que sí! Con $15,000 MXN al mes puedes manejar el XPENG G6 versión Standard con enganche del 20%.
 
-Para avanzar con tu crédito, necesito:
-• INE vigente
-• Comprobante de ingresos (últimos 3 meses)
-• Estados de cuenta bancarios
+Para avanzar con tu crédito, necesito estos datos de preaprobación:
+• RFC
+• Ingreso mensual
+• Nombre completo / género / correo
+• Domicilio + C.P.
 
-¿Los tienes a la mano?</div>
+¿Me puedes compartir tu RFC y correo?</div>
           <div class="msg-status">✓✓ 已送达</div>
         </div>
       </div>
@@ -1493,7 +1523,7 @@ Para avanzar con tu crédito, necesito:
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3v4M3 5h4M19 17v4M17 19h4"/><path d="M11.5 6.5l6 6-8.5 8.5H3v-6.5z"/></svg>
           CAVi 自动生成
         </div>
-        客户关注 <strong>MG5</strong>，单身青年用车，预算 $9,500 MXN/月，已上传 INE 和银行流水。<strong>AI 已完成全部收集，5 天前转人工</strong>，目前销售跟进中。
+        客户关注 <strong>MG5</strong>，单身青年用车，预算 $9,500 MXN/月，预审字段已收集 7/8（仅差邮编）。<strong>AI 已完成全部收集，5 天前转人工</strong>，目前销售跟进中。
       </div>
     </div>
 
@@ -1572,7 +1602,7 @@ Para avanzar con tu crédito, necesito:
       <div class="profile-field">
         <span class="profile-field-label">资料状态</span>
         <span class="profile-field-value">
-          <span class="profile-tag" style="background: var(--warning-soft-bg); color: var(--warning);">待收集</span>
+          <span class="profile-tag" style="background: var(--warning-soft-bg); color: var(--warning);">预审近完成 · 7/8</span>
         </span>
       </div>
       <div class="profile-field">
@@ -1581,21 +1611,59 @@ Para avanzar con tu crédito, necesito:
       </div>
     </div>
 
-    <!-- 资料清单 -->
+    <!-- 预审信息收集（对齐 金融订单预审字段.md） -->
     <div class="profile-section">
-      <div class="profile-section-title">资料清单</div>
+      <div class="profile-section-title">预审信息收集</div>
+      <div class="precheck-progress"><span>用户必填进度</span><strong>7/8</strong></div>
+      <div class="precheck-group-title">财务信息</div>
       <div class="profile-field">
-        <span class="profile-field-label">INE</span>
-        <span class="profile-field-value">❌ 未提供</span>
+        <span class="profile-field-label">RFC</span>
+        <span class="profile-field-value"><span class="precheck-status-done">已填 · XAXX010101XXX</span></span>
       </div>
       <div class="profile-field">
-        <span class="profile-field-label">收入证明</span>
-        <span class="profile-field-value">❌ 未提供</span>
+        <span class="profile-field-label">月收入</span>
+        <span class="profile-field-value"><span class="precheck-status-done">已填 · $22,000</span></span>
+      </div>
+      <div class="precheck-group-title">基础信息</div>
+      <div class="profile-field">
+        <span class="profile-field-label">姓名</span>
+        <span class="profile-field-value"><span class="precheck-status-done">已填</span></span>
       </div>
       <div class="profile-field">
-        <span class="profile-field-label">银行流水</span>
-        <span class="profile-field-value">❌ 未提供</span>
+        <span class="profile-field-label">出生日期</span>
+        <span class="profile-field-value"><span class="precheck-status-sys">已推算 · 2001-01-01</span></span>
       </div>
+      <div class="profile-field">
+        <span class="profile-field-label">性别</span>
+        <span class="profile-field-value"><span class="precheck-status-done">已填 · M</span></span>
+      </div>
+      <div class="profile-field">
+        <span class="profile-field-label">电话</span>
+        <span class="profile-field-value"><span class="precheck-status-done">已填</span></span>
+      </div>
+      <div class="profile-field">
+        <span class="profile-field-label">邮箱</span>
+        <span class="profile-field-value"><span class="precheck-status-done">已填</span></span>
+      </div>
+      <div class="precheck-group-title">地址信息</div>
+      <div class="profile-field">
+        <span class="profile-field-label">完整地址</span>
+        <span class="profile-field-value"><span class="precheck-status-done">已填 · NL / Monterrey…</span></span>
+      </div>
+      <div class="profile-field">
+        <span class="profile-field-label">邮编 C.P.</span>
+        <span class="profile-field-value"><span class="precheck-status-miss">未提供</span></span>
+      </div>
+      <div class="precheck-group-title">其他（系统）</div>
+      <div class="profile-field">
+        <span class="profile-field-label">购车用途</span>
+        <span class="profile-field-value"><span class="precheck-status-sys">自动 · 个人用车</span></span>
+      </div>
+      <div class="profile-field">
+        <span class="profile-field-label">所属渠道</span>
+        <span class="profile-field-value"><span class="precheck-status-sys">自动 · AutoCava</span></span>
+      </div>
+      <div class="precheck-hint">来源：金融订单预审字段 · 仅差邮编；出生日期已由 RFC 推算</div>
     </div>
 
   </aside>
