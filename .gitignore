@@ -26,3 +26,4 @@ pnpm-debug.log*
 
 # Wrangler / Cloudflare
 .wrangler/
+publish/
