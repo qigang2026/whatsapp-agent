@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>客户已收到信审结果 · 客户视角演示</title>
+<style>
+  /* ============================================================
+     WhatsApp Agent · 客户视角演示页（信审结果推送）
+     规范：visual-specs/04-admin（Element UI 风，与 3 个收件箱 PC 一致）
+     数据源：Mock · 演示客户收到信审结果 HSM 后的对话流
+     用途：销售 / 运营 / 培训演示「客户实际收到的内容」
+     URL hash 切换 3 种结果态：
+       #approved  - 信审通过
+       #rejected  - 信审未通过（备选方案）
+       #more_info - 信审补件
+       默认 approved
+     ============================================================ */
+
+  :root {
+    --sidebar-bg: #232B2F;
+    --sidebar-logo-bg: #2B2F3A;
+    --sidebar-hover: #2C333D;
+    --submenu-bg: #1E2529;
+    --submenu-active-bg: #2C333D;
+    --sidebar-active-bg: #1F8FE9;
+    --sidebar-text: #BFC9D4;
+    --sidebar-text-active: #FFFFFF;
+
+    --bg-main: #fff;
+    --header-bg: #fff;
+    --header-border: #EBEEF5;
+    --row-hover: #FAFAFC;
+    --bg-soft: #F5F7FA;
+
+    --primary: #419EFE;
+    --primary-soft-bg: #E8F4FE;
+    --success: #67C23A;
+    --success-soft-bg: #E1F3D8;
+    --warning: #E6A23C;
+    --warning-soft-bg: #FAECD8;
+    --danger: #F56C6C;
+    --danger-soft-bg: #FEF0F0;
+    --purple: #7C4DFF;
+    --purple-soft-bg: #EDE7FF;
+    --info: #909399;
+
+    --border: #DCDFE6;
+    --border-light: #F0F2F5;
+
+    --text-main: #303133;
+    --text-regular: #606266;
+    --text-secondary: #909399;
+    --text-placeholder: #C0C4CC;
+
+    --sidebar-width: 176px;
+    --conv-list-width: 280px;
+    --profile-width: 300px;
+    --logo-height: 56px;
+    --header-height: 55px;
+
+    /* 气泡颜色（WhatsApp 风格） */
+    --wa-bubble-out-bg: #DCF8C6;
+    --wa-bubble-in-bg: #FFFFFF;
+    --wa-bubble-system-bg: #FFF7E6;
+    --wa-chat-bg: #E5DDD5;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+                 "Helvetica Neue", "Hiragino Sans GB", "Microsoft YaHei",
+                 "微软雅黑", "Source Han Sans CN", "Noto Sans CJK SC",
+                 Arial, sans-serif;
+    font-size: 13px;
+    color: var(--text-main);
+    background: var(--bg-soft);
+    min-width: 1280px;
+  }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ========== 整体布局 ========== */
+  .layout {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    min-height: 100vh;
+  }
+
+  /* ========== 侧栏 ========== */
+  .sidebar {
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-logo {
+    height: var(--logo-height);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    background: var(--sidebar-logo-bg);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sidebar-text-active);
+    gap: 8px;
+  }
+  .sidebar-logo-mark {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .sidebar-menu { flex: 1; padding: 8px 0; overflow-y: auto; }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    color: var(--sidebar-text);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .menu-item:hover { background: var(--sidebar-hover); }
+  .menu-item.active { background: var(--submenu-active-bg); color: var(--sidebar-text-active); }
+  .menu-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* ========== 主区域 ========== */
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .header {
+    height: var(--header-height);
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--header-border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 12px;
+  }
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .breadcrumb .home { color: var(--primary); }
+  .breadcrumb .current { color: var(--text-main); }
+
+  /* ========== 顶部状态条（HSM 推送摘要） ========== */
+  .status-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #F8FAFF 0%, #F0F7FF 100%);
+    border-bottom: 1px solid #DCE9FD;
+  }
+  .status-banner.approved { background: linear-gradient(135deg, #F0FBE8 0%, #E1F3D8 100%); border-bottom-color: #BFE3A2; }
+  .status-banner.rejected { background: linear-gradient(135deg, #FEF0F0 0%, #FCE0E0 100%); border-bottom-color: #FAB6B6; }
+  .status-banner.more_info { background: linear-gradient(135deg, #FAECD8 0%, #F5DFB6 100%); border-bottom-color: #E6C285; }
+  .status-banner-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .status-banner.approved .status-banner-icon { background: var(--success); }
+  .status-banner.rejected .status-banner-icon { background: var(--danger); }
+  .status-banner.more_info .status-banner-icon { background: var(--warning); }
+  .status-banner-icon svg { width: 20px; height: 20px; }
+  .status-banner-text { flex: 1; min-width: 0; }
+  .status-banner-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 2px;
+  }
+  .status-banner-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .status-banner-result {
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .status-banner-result.approved { background: var(--success-soft-bg); color: var(--success); }
+  .status-banner-result.rejected { background: var(--danger-soft-bg); color: var(--danger); }
+  .status-banner-result.more_info { background: var(--warning-soft-bg); color: var(--warning); }
+
+  /* ========== 结果态切换器 ========== */
+  .result-tabs {
+    display: flex;
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--header-border);
+    padding: 0 20px;
+    gap: 4px;
+  }
+  .result-tab {
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    user-select: none;
+  }
+  .result-tab:hover { color: var(--text-main); }
+  .result-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .result-tab.active.approved { color: var(--success); border-bottom-color: var(--success); }
+  .result-tab.active.rejected { color: var(--danger); border-bottom-color: var(--danger); }
+  .result-tab.active.more_info { color: var(--warning); border-bottom-color: var(--warning); }
+
+  /* ========== 主区 3 列 ========== */
+  .work-area {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr var(--profile-width);
+    min-height: 0;
+  }
+  .conv-panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--wa-chat-bg);
+    border-right: 1px solid var(--header-border);
+    min-width: 0;
+  }
+  .conv-header {
+    background: var(--bg-main);
+    border-bottom: 1px solid var(--header-border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .conv-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .conv-name { font-size: 14px; font-weight: 600; color: var(--text-main); }
+  .conv-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .conv-meta .online { color: var(--success); }
+
+  /* ========== 对话流 ========== */
+  .chat-stream {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    background:
+      radial-gradient(circle at 20px 20px, rgba(255,255,255,0.3) 1px, transparent 1px),
+      radial-gradient(circle at 60px 60px, rgba(255,255,255,0.2) 1px, transparent 1px),
+      var(--wa-chat-bg);
+    background-size: 80px 80px;
+  }
+  .day-divider {
+    text-align: center;
+    margin: 12px 0;
+    position: relative;
+  }
+  .day-divider span {
+    display: inline-block;
+    background: rgba(255,255,255,0.85);
+    color: var(--text-secondary);
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 10px;
+  }
+  .msg-row {
+    display: flex;
+    margin-bottom: 10px;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .msg-row.out { justify-content: flex-end; }
+  .msg-row.in  { justify-content: flex-start; }
+  .msg-row.system { justify-content: center; }
+  .bubble {
+    max-width: 60%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.55;
+    word-wrap: break-word;
+    box-shadow: 0 1px 0.5px rgba(0,0,0,0.08);
+    position: relative;
+  }
+  .bubble.in {
+    background: var(--wa-bubble-in-bg);
+    color: var(--text-main);
+    border-top-left-radius: 2px;
+  }
+  .bubble.out {
+    background: var(--wa-bubble-out-bg);
+    color: var(--text-main);
+    border-top-right-radius: 2px;
+  }
+  .bubble.system {
+    background: var(--wa-bubble-system-bg);
+    color: var(--text-regular);
+    font-size: 11px;
+    max-width: 70%;
+    text-align: center;
+    border: 1px dashed #FFD591;
+  }
+  .bubble.system.approved { background: var(--success-soft-bg); border-color: #BFE3A2; }
+  .bubble.system.rejected { background: var(--danger-soft-bg); border-color: #FAB6B6; }
+  .bubble.system.more_info { background: var(--warning-soft-bg); border-color: #E6C285; }
+  .bubble-time {
+    display: block;
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+    text-align: right;
+  }
+  .bubble.in .bubble-time { text-align: left; }
+  .bubble.system .bubble-time {
+    text-align: center;
+    margin-top: 4px;
+    color: var(--text-placeholder);
+  }
+  .bubble-cta {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 4px 10px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .bubble-quicks {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .quick-reply {
+    padding: 4px 10px;
+    background: #fff;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    border-radius: 14px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .bubble-meta {
+    font-size: 10px;
+    color: var(--text-placeholder);
+    margin-top: 4px;
+  }
+  .bubble-meta .hsm-tag {
+    display: inline-block;
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+    padding: 0 5px;
+    border-radius: 3px;
+    font-weight: 600;
+    margin-right: 4px;
+    font-family: ui-monospace, monospace;
+  }
+
+  /* ========== 右侧客户档案 ========== */
+  .profile-panel {
+    background: var(--bg-main);
+    overflow-y: auto;
+    padding: 0;
+  }
+  .profile-section {
+    border-bottom: 1px solid var(--border-light);
+    padding: 14px 16px;
+  }
+  .profile-section:last-child { border-bottom: none; }
+  .profile-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .profile-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 12px;
+  }
+  .profile-field-label { color: var(--text-secondary); }
+  .profile-field-value { color: var(--text-main); font-weight: 500; }
+  .profile-field-value.pill {
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .pill-success { background: var(--success-soft-bg); color: var(--success); }
+  .pill-warning { background: var(--warning-soft-bg); color: var(--warning); }
+  .pill-danger { background: var(--danger-soft-bg); color: var(--danger); }
+  .pill-primary { background: var(--primary-soft-bg); color: var(--primary); }
+  .pill-gray { background: #F2F3F5; color: var(--text-regular); }
+
+  /* ========== 信审时间线（右侧复用） ========== */
+  .precheck-timeline {
+    position: relative;
+    padding-left: 18px;
+  }
+  .precheck-timeline::before {
+    content: '';
+    position: absolute;
+    left: 5px; top: 4px; bottom: 4px;
+    width: 1px;
+    background: var(--border-light);
+  }
+  .precheck-node {
+    position: relative;
+    padding: 0 0 10px 0;
+    list-style: none;
+  }
+  .precheck-node:last-child { padding-bottom: 0; }
+  .precheck-node-dot {
+    position: absolute;
+    left: -18px; top: 2px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--border);
+    background: var(--primary);
+  }
+  .precheck-node-dot.blue   { background: var(--primary);   box-shadow: 0 0 0 1px var(--primary); }
+  .precheck-node-dot.green  { background: var(--success);   box-shadow: 0 0 0 1px var(--success); }
+  .precheck-node-dot.red    { background: var(--danger);    box-shadow: 0 0 0 1px var(--danger); }
+  .precheck-node-dot.yellow { background: var(--warning);   box-shadow: 0 0 0 1px var(--warning); }
+  .precheck-node-dot.gray   { background: var(--info);      box-shadow: 0 0 0 1px var(--info); }
+  .precheck-node-time {
+    font-size: 10px;
+    color: var(--text-placeholder);
+    line-height: 1.3;
+    margin-bottom: 2px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .precheck-node-label {
+    font-size: 11px;
+    color: var(--text-main);
+    line-height: 1.5;
+  }
+  .precheck-node-tag {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    margin-right: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .precheck-node-tag.blue   { background: var(--primary-soft-bg); color: var(--primary); }
+  .precheck-node-tag.green  { background: var(--success-soft-bg); color: var(--success); }
+  .precheck-node-tag.red    { background: var(--danger-soft-bg); color: var(--danger); }
+  .precheck-node-tag.yellow { background: var(--warning-soft-bg); color: var(--warning); }
+  .precheck-node-tag.gray   { background: #F2F3F5; color: var(--info); }
+
+  /* ========== 底部 24h 窗口状态 ========== */
+  .window-bar {
+    background: var(--bg-main);
+    border-top: 1px solid var(--header-border);
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .window-bar-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .window-bar-text { color: var(--text-secondary); }
+  .window-bar-text strong { color: var(--success); font-weight: 600; }
+
+  /* ========== 演示说明 ========== */
+  .demo-hint {
+    background: #FFF7E6;
+    border: 1px dashed #FFD591;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 12px 20px;
+    font-size: 11px;
+    color: var(--text-regular);
+    line-height: 1.5;
+  }
+  .demo-hint strong { color: var(--warning); font-weight: 600; }
+
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ========== 侧栏 ========== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="sidebar-logo-mark">W</span>
+      <span>WhatsApp Agent</span>
+    </div>
+    <nav class="sidebar-menu">
+      <a class="menu-item" href="WhatsApp-Agent-PC.html" style="color:inherit;text-decoration:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+        工作台
+      </a>
+      <div class="menu-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        统一客服收件箱
+      </div>
+      <a class="menu-item" href="跟进策略-Skill-PC.html" style="color:inherit;text-decoration:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        跟进策略 Skill
+      </a>
+      <a class="menu-item" href="知识库(cavi).html" style="color:inherit;text-decoration:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        知识库（CAVi）
+      </a>
+      <a class="menu-item" href="线索详情-PC.html" style="color:inherit;text-decoration:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        线索详情
+      </a>
+    </nav>
+  </aside>
+
+  <!-- ========== 主区域 ========== -->
+  <main class="main">
+
+    <!-- 顶栏 -->
+    <div class="header">
+      <div class="breadcrumb">
+        <a class="home" href="WhatsApp-Agent-PC.html">工作台</a>
+        <span> / </span>
+        <a href="统一客服收件箱-PC.html" style="color:var(--text-secondary);">统一客服收件箱</a>
+        <span> / </span>
+        <span class="current">客户视角演示 · 信审结果推送</span>
+      </div>
+    </div>
+
+    <!-- 顶部状态条 -->
+    <div class="status-banner approved" id="statusBanner">
+      <div class="status-banner-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="status-banner-text">
+        <div class="status-banner-title" id="bannerTitle">信审结果已推送客户 · Fernanda Soto · XPENG G6</div>
+        <div class="status-banner-desc" id="bannerDesc">MStar 审核通过 · HSM 模板已通过 Meta 审批 · 客户已读 · 等待客户回复触发 24h 窗口</div>
+      </div>
+      <div class="status-banner-result approved" id="bannerResult">approved</div>
+    </div>
+
+    <!-- 3 种结果态切换器 -->
+    <div class="result-tabs">
+      <div class="result-tab approved active" data-tab="approved">
+        通过 · approved
+      </div>
+      <div class="result-tab rejected" data-tab="rejected">
+        未通过 · rejected（备选方案）
+      </div>
+      <div class="result-tab more_info" data-tab="more_info">
+        补件 · more_info
+      </div>
+    </div>
+
+    <!-- 演示说明 -->
+    <div class="demo-hint">
+      <strong>演示说明</strong> · 本页展示客户收到信审结果 HSM 后<strong>实际看到的内容</strong>。HSM 模板必须在 Meta 审核通过后才能发送，发送后 24h 窗口未开，需等客户回复。客户回复后 AI 对话引擎可接管。
+    </div>
+
+    <!-- 主区：对话流 + 客户档案 -->
+    <div class="work-area">
+
+      <!-- ========== 对话面板 ========== -->
+      <section class="conv-panel">
+        <div class="conv-header">
+          <div class="conv-avatar">FS</div>
+          <div style="flex:1;min-width:0;">
+            <div class="conv-name" id="convName">Fernanda Soto Gil</div>
+            <div class="conv-meta">
+              <span class="online">●</span>
+              <span id="convMeta">在线 · XPENG G6 2026 · 墨西哥城 Polanco</span>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-secondary);">
+            WhatsApp · +52 55 8421 6633
+          </div>
+        </div>
+
+        <!-- 对话流 -->
+        <div class="chat-stream" id="chatStream">
+          <!-- 由 JS 渲染 -->
+        </div>
+
+        <!-- 24h 窗口状态条 -->
+        <div class="window-bar" id="windowBar">
+          <span class="window-bar-dot"></span>
+          <span class="window-bar-text">
+            <strong id="windowStatusStrong">24h 窗口已开</strong>
+            <span id="windowStatusText">· 客户已回复 · AI 对话引擎已接管 · 可自由发送文本/图片/PDF</span>
+          </span>
+        </div>
+      </section>
+
+      <!-- ========== 客户档案 ========== -->
+      <aside class="profile-panel">
+
+        <!-- 客户信息 -->
+        <div class="profile-section">
+          <div class="profile-section-title">客户信息</div>
+          <div class="profile-field">
+            <span class="profile-field-label">姓名</span>
+            <span class="profile-field-value">Fernanda Soto Gil</span>
+          </div>
+          <div class="profile-field">
+            <span class="profile-field-label">RFC</span>
+            <span class="profile-field-value">SOGF920815HDF</span>
+          </div>
+          <div class="profile-field">
+            <span class="profile-field-label">电话</span>
+            <span class="profile-field-value">+52 55 8421 6633</span>
+          </div>
+          <div class="profile-field">
+            <span class="profile-field-label">邮箱</span>
+            <span class="profile-field-value">fernanda.soto@gmail.com</span>
+          </div>
+          <div class="profile-field">
+            <span class="profile-field-label">地区</span>
+            <span class="profile-field-value">CDMX · Polanco</span>
+          </div>
+        </div>
+
+        <!-- 购车意向 -->
+        <div class="profile-section">
+          <div class="profile-section-title">购车意向</div>
+          <div class="profile-field">
+            <span class="profile-field-label">意向车型</span>
+            <span class="profile-field-value">XPENG G6 2026</span>
+          </div>
+          <div class="profile-field">
+            <span class="profile-field-label">首付</span>
+            <span class="profile-field-value">$180,000 MXN</span>
+          </div>
+          <div class="profile-field">
+            <span class="profile-field-label">月供目标</span>
+            <span class="profile-field-value">$12,000 MXN</span>
+          </div>
+          <div class="profile-field">
+            <span class="profile-field-label">购车时间</span>
+            <span class="profile-field-value">9 月内</span>
+          </div>
+        </div>
+
+        <!-- 信审进度 -->
+        <div class="profile-section">
+          <div class="profile-section-title">信审进度</div>
+          <ol class="precheck-timeline" id="profileTimeline">
+            <!-- 由 JS 渲染 -->
+          </ol>
+        </div>
+
+        <!-- 预审字段 -->
+        <div class="profile-section">
+          <div class="profile-section-title">预审字段（8/8）</div>
+          <div class="profile-field"><span class="profile-field-label">RFC · 税号</span><span class="pill pill-success">已填</span></div>
+          <div class="profile-field"><span class="profile-field-label">月收入</span><span class="pill pill-success">已填</span></div>
+          <div class="profile-field"><span class="profile-field-label">姓名</span><span class="pill pill-success">已填</span></div>
+          <div class="profile-field"><span class="profile-field-label">性别</span><span class="pill pill-success">已填</span></div>
+          <div class="profile-field"><span class="profile-field-label">电话</span><span class="pill pill-success">已填</span></div>
+          <div class="profile-field"><span class="profile-field-label">邮箱</span><span class="pill pill-success">已填</span></div>
+          <div class="profile-field"><span class="profile-field-label">地址</span><span class="pill pill-success">已填</span></div>
+          <div class="profile-field"><span class="profile-field-label">邮编</span><span class="pill pill-success">已填</span></div>
+        </div>
+
+        <!-- 当前节点 -->
+        <div class="profile-section">
+          <div class="profile-section-title">当前跟进节点</div>
+          <div class="profile-field">
+            <span class="profile-field-label">节点</span>
+            <span class="pill pill-primary" id="currentNodeTag">sop_08 · 通过</span>
+          </div>
+          <div class="profile-field">
+            <span class="profile-field-label">负责人</span>
+            <span class="profile-field-value">Maria Hernandez</span>
+          </div>
+          <div class="profile-field">
+            <span class="profile-field-label">下一动作</span>
+            <span class="profile-field-value" id="nextAction">联系客户推进试驾</span>
+          </div>
+          <div class="profile-field">
+            <span class="profile-field-label">动作时间</span>
+            <span class="profile-field-value" id="nextActionAt">2026-09-08 10:00</span>
+          </div>
+        </div>
+
+      </aside>
+
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+// ============================================================
+// 3 种结果态数据
+// ============================================================
+const resultStates = {
+  approved: {
+    bannerTitle: '信审结果已推送客户 · Fernanda Soto · XPENG G6',
+    bannerDesc: 'MStar 审核通过 · HSM 模板已通过 Meta 审批 · 客户已读 · 等待客户回复触发 24h 窗口',
+    resultTag: 'approved',
+    convMeta: '在线 · XPENG G6 2026 · 墨西哥城 Polanco',
+    currentNodeTag: 'sop_08 · 通过',
+    nextAction: '联系客户推进试驾/签约',
+    nextActionAt: '2026-09-08 10:00',
+    windowStrong: '24h 窗口已开',
+    windowText: '· 客户已回复 · AI 对话引擎已接管 · 可自由发送文本/图片/PDF',
+    messages: [
+      { type: 'system', color: 'approved', text: 'Fernanda 提交了预审表单 · 8/8 字段已收齐', meta: 'sop_07 · precheck.status = submitted · 09-07 16:00', time: '16:00' },
+      { type: 'system', color: '', text: 'MStar 审核中（约 2h45min）', meta: 'MStar API 异步回调 · review.result 等待写入', time: '16:00 → 18:45' },
+      { type: 'in', bubble: 'hsm',
+        hsmId: 'hsm_precheck_result_approved_v1',
+        text: 'Hola Fernanda, ¡buenas noticias! Tu evaluación con Mstar para el XPENG G6 fue aprobada. Tu asesor de AutoCava te contactará hoy para coordinar los siguientes pasos. ¿Alguna duda?',
+        cta: '好的，等联系',
+        quickReplies: ['好的', '我有疑问'],
+        meta: 'UTILITY · sent 18:45 · delivered 18:46 · read 18:50',
+        time: '18:46' },
+      { type: 'out', text: '¡Gracias! Sí, espero su llamada. ¿Será hoy en la tarde o mañana?', time: '19:12 · read ✓✓' },
+      { type: 'in', bubble: 'ai',
+        text: '¡Con gusto, Fernanda! Maria, tu asesora de AutoCava, te contactará hoy entre las 20:00 y 21:00 (hora CDMX). Mientras tanto, si quieres ir preparando los documentos para la siguiente etapa (INE + comprobante de domicilio), nos ayuda a avanzar más rápido.',
+        time: '19:13 · auto-reply · 24h window open' },
+      { type: 'system', color: 'approved', text: 'sop_08 → sop_09 · 客户主动回复 · 24h 窗口已开 · AI 接管自由对话', meta: '已通知销售 Maria Hernandez · 标记线索状态 = 人工跟进中', time: '19:13' }
+    ],
+    timeline: [
+      { dot: 'blue',   time: '09-07 14:52', tag: 'pending',    label: 'HSM 推送预审链接' },
+      { dot: 'blue',   time: '09-07 15:30', tag: 'in_progress', label: '客户打开填写' },
+      { dot: 'blue',   time: '09-07 16:00', tag: 'submitted',  label: '客户提交预审' },
+      { dot: 'green',  time: '09-07 18:45', tag: 'approved',   label: 'MStar 审核通过' },
+      { dot: 'green',  time: '09-07 18:46', tag: 'hsm',        label: '通知客户 HSM' },
+      { dot: 'yellow', time: '09-07 18:50', tag: 'read',       label: '客户已读' },
+      { dot: 'green',  time: '09-07 19:12', tag: 'replied',    label: '客户回复' }
+    ]
+  },
+
+  rejected: {
+    bannerTitle: '信审结果已推送客户 · Roberto Diaz · JAC E10X',
+    bannerDesc: 'MStar 审核未通过 · 存在备选方案路径 · HSM 已推 · 客户已读未回 · 销售准备联系',
+    resultTag: 'rejected',
+    convMeta: '最后在线 1h 前 · JAC E10X 2026 · 墨西哥城 Coyoacán',
+    currentNodeTag: 'sop_08 · 未通过（备选方案）',
+    nextAction: '沟通备选方案：调整首付 / 期限 / 车型',
+    nextActionAt: '2026-09-08 11:30',
+    windowStrong: '24h 窗口未开',
+    windowText: '· HSM 已读未回 · 9/8 18:00 触发二次提醒 · 9/9 18:00 仍未回则升级销售',
+    messages: [
+      { type: 'system', color: 'rejected', text: 'MStar 审核未通过 · 存在真实备选路径（首付可调整至 $150k）', meta: 'review.result = rejected · alternative_path = true', time: '09-07 17:30' },
+      { type: 'in', bubble: 'hsm',
+        hsmId: 'hsm_precheck_result_rejected_v1',
+        text: 'Hola Roberto, sobre el JAC E10X: la evaluación inicial no fue aprobada. Podemos explorar alternativas (ajuste de enganche / plazo / modelo). ¿Te gustaría que un asesor te contacte?',
+        cta: '好，联系我',
+        quickReplies: ['好', '暂不需要'],
+        meta: 'UTILITY · sent 17:32 · delivered 17:32 · read 17:55',
+        time: '17:32' },
+      { type: 'system', color: '', text: '客户已读 · 2h 未回复 · 触发二次提醒 HSM', meta: 'hsm_precheck_result_remind_v1 · 预计 9/8 17:32 自动推送', time: '19:55' },
+      { type: 'system', color: 'rejected', text: '已通知销售 Carlos Mendoza · 准备主动联系客户', meta: 'lead.next_action = 沟通备选方案 · lead.owner = Carlos Mendoza', time: '09-07 19:56' }
+    ],
+    timeline: [
+      { dot: 'blue',   time: '09-07 14:20', tag: 'pending',    label: 'HSM 推送预审链接' },
+      { dot: 'blue',   time: '09-07 15:10', tag: 'in_progress', label: '客户打开填写' },
+      { dot: 'blue',   time: '09-07 16:05', tag: 'submitted',  label: '客户提交预审' },
+      { dot: 'red',    time: '09-07 17:30', tag: 'rejected',   label: 'MStar 审核未通过' },
+      { dot: 'red',    time: '09-07 17:32', tag: 'hsm',        label: '通知客户 HSM' },
+      { dot: 'yellow', time: '09-07 17:55', tag: 'read',       label: '客户已读未回' },
+      { dot: 'yellow', time: '09-07 19:55', tag: 'remind',     label: '二次提醒排队' }
+    ]
+  },
+
+  more_info: {
+    bannerTitle: '信审结果已推送客户 · Laura Martinez · VW Tiguan',
+    bannerDesc: 'MStar 审核要求补件 · HSM 已推 · 客户已回复确认准备资料 · 等待客户提交',
+    resultTag: 'more_info',
+    convMeta: '在线 · Tiguan 2026 · 瓜达拉哈拉 Zapopan',
+    currentNodeTag: 'sop_08 · 补件中',
+    nextAction: '等待客户提交：INE + 银行流水 3 个月',
+    nextActionAt: '2026-09-09 18:00',
+    windowStrong: '24h 窗口已开',
+    windowText: '· 客户已回复确认 · AI 对话中 · 引导客户按指引上传资料',
+    messages: [
+      { type: 'system', color: 'more_info', text: 'MStar 审核要求补件 · documents.pending = INE + 银行流水 3 个月', meta: 'review.result = more_info', time: '09-07 15:45' },
+      { type: 'in', bubble: 'hsm',
+        hsmId: 'hsm_precheck_result_more_info_v1',
+        text: 'Hola Laura, para avanzar con tu evaluación necesitamos: INE (frente y vuelta) + 3 meses de estados de cuenta bancarios. ¿Podrías compartirlos por este medio?',
+        cta: '好的，稍后发',
+        quickReplies: ['好的', '怎么发？'],
+        meta: 'UTILITY · sent 15:47 · delivered 15:47 · read 15:50',
+        time: '15:47' },
+      { type: 'out', text: 'Sí, los tengo. ¿Los mando por aquí o hay un link seguro?', time: '15:58 · read ✓✓' },
+      { type: 'in', bubble: 'ai',
+        text: 'Hola Laura, por favor NO envíes documentos sensibles (INE / estados de cuenta) por este chat. Te envío ahora un enlace seguro de MStar con encriptación bancaria — ábrelo desde tu celular, es 2 minutos.',
+        cta: 'Enviar enlace seguro',
+        quickReplies: ['Enviar enlace', 'Prefiero en persona'],
+        meta: 'auto-reply · 24h window open · 引导走 MStar 受控金融流程',
+        time: '15:59 · auto-reply' },
+      { type: 'system', color: 'more_info', text: 'MStar 安全上传链接已下发 · 等待客户提交', meta: 'documents.pending · lead.next_action = 等待客户补件', time: '16:00' }
+    ],
+    timeline: [
+      { dot: 'blue',   time: '09-07 13:10', tag: 'pending',    label: 'HSM 推送预审链接' },
+      { dot: 'blue',   time: '09-07 13:45', tag: 'in_progress', label: '客户打开填写' },
+      { dot: 'blue',   time: '09-07 14:30', tag: 'submitted',  label: '客户提交预审' },
+      { dot: 'yellow', time: '09-07 15:45', tag: 'more_info',  label: 'MStar 要求补件' },
+      { dot: 'yellow', time: '09-07 15:47', tag: 'hsm',        label: '通知客户补件 HSM' },
+      { dot: 'yellow', time: '09-07 15:50', tag: 'read',       label: '客户已读' },
+      { dot: 'yellow', time: '09-07 15:58', tag: 'replied',    label: '客户回复确认' }
+    ]
+  }
+};
+
+// ============================================================
+// 渲染函数
+// ============================================================
+function renderChat(state) {
+  const stream = document.getElementById('chatStream');
+  const messages = state.messages;
+  const html = messages.map(m => {
+    if (m.type === 'system') {
+      const colorCls = m.color ? ' ' + m.color : '';
+      return `
+        <div class="msg-row system">
+          <div class="bubble system${colorCls}">
+            ${escHtml(m.text)}
+            ${m.meta ? `<div class="bubble-meta">${escHtml(m.meta)}</div>` : ''}
+            <span class="bubble-time">${escHtml(m.time)}</span>
+          </div>
+        </div>
+      `;
+    }
+    if (m.type === 'out') {
+      return `
+        <div class="msg-row out">
+          <div class="bubble out">
+            ${escHtml(m.text)}
+            <span class="bubble-time">${escHtml(m.time)}</span>
+          </div>
+        </div>
+      `;
+    }
+    // type === 'in'
+    const isHsm = m.bubble === 'hsm';
+    const isAi = m.bubble === 'ai';
+    return `
+      <div class="msg-row in">
+        <div class="bubble in">
+          ${isHsm && m.hsmId ? `<div class="bubble-meta"><span class="hsm-tag">${escHtml(m.hsmId)}</span>${escHtml(m.meta || '')}</div>` : ''}
+          ${isAi ? `<div class="bubble-meta" style="color:var(--purple);">${escHtml(m.meta || 'AI 对话引擎 · 24h 窗口内')}</div>` : ''}
+          ${escHtml(m.text)}
+          ${m.cta ? `<div><span class="bubble-cta">${escHtml(m.cta)}</span></div>` : ''}
+          ${m.quickReplies ? `<div class="bubble-quicks">${m.quickReplies.map(q => `<span class="quick-reply">${escHtml(q)}</span>`).join('')}</div>` : ''}
+          <span class="bubble-time">${escHtml(m.time)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+  stream.innerHTML = html;
+  // 滚到底
+  stream.scrollTop = stream.scrollHeight;
+}
+
+function renderTimeline(state) {
+  const el = document.getElementById('profileTimeline');
+  el.innerHTML = state.timeline.map(n => `
+    <li class="precheck-node">
+      <span class="precheck-node-dot ${n.dot}"></span>
+      <div class="precheck-node-time">${escHtml(n.time)}</div>
+      <div>
+        <span class="precheck-node-tag ${n.dot}">${escHtml(n.tag)}</span>
+        <span class="precheck-node-label">${escHtml(n.label)}</span>
+      </div>
+    </li>
+  `).join('');
+}
+
+function renderState(key) {
+  const state = resultStates[key];
+  if (!state) return;
+  // 顶部状态条
+  const banner = document.getElementById('statusBanner');
+  banner.className = 'status-banner ' + key;
+  document.getElementById('bannerTitle').textContent = state.bannerTitle;
+  document.getElementById('bannerDesc').textContent = state.bannerDesc;
+  const resultEl = document.getElementById('bannerResult');
+  resultEl.className = 'status-banner-result ' + key;
+  resultEl.textContent = state.resultTag;
+  // 客户元数据
+  document.getElementById('convMeta').textContent = state.convMeta;
+  document.getElementById('currentNodeTag').textContent = state.currentNodeTag;
+  document.getElementById('currentNodeTag').className = 'pill ' + (key === 'approved' ? 'pill-success' : key === 'rejected' ? 'pill-danger' : 'pill-warning');
+  document.getElementById('nextAction').textContent = state.nextAction;
+  document.getElementById('nextActionAt').textContent = state.nextActionAt;
+  // 24h 窗口条
+  document.getElementById('windowStatusStrong').textContent = state.windowStrong;
+  document.getElementById('windowStatusText').textContent = state.windowText;
+  document.getElementById('windowStatusStrong').style.color = state.windowStrong.indexOf('已开') > -1 ? 'var(--success)' : 'var(--warning)';
+  // 对话流 + 时间线
+  renderChat(state);
+  renderTimeline(state);
+}
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============================================================
+// tab 切换
+// ============================================================
+document.querySelectorAll('.result-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.result-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    renderState(this.dataset.tab);
+    // 同步 URL hash
+    history.replaceState(null, '', '#' + this.dataset.tab);
+  });
+});
+
+// ============================================================
+// 初始化（按 URL hash 或默认 approved）
+// ============================================================
+(function init() {
+  const hash = (location.hash || '#approved').replace('#', '');
+  const initial = resultStates[hash] ? hash : 'approved';
+  // tab 高亮
+  document.querySelectorAll('.result-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === initial);
+  });
+  renderState(initial);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>架构 · 领导视角 · MVP-1</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --wa: #25D366;
+      --wa-dark: #128C7E;
+      --text: rgba(0,0,0,.88);
+      --muted: rgba(0,0,0,.55);
+      --line: #e7ebf3;
+      --bg: #f5f7fa;
+      --card: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    .top {
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .top a { color: var(--wa-dark); text-decoration: none; font-size: 13px; }
+    .top nav { display: flex; gap: 16px; flex-wrap: wrap; }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 40px 24px 64px; }
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--wa-dark);
+      background: rgba(37,211,102,.12);
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+    h1 { font-size: 28px; font-weight: 650; margin-bottom: 8px; }
+    .lead { color: var(--muted); font-size: 15px; max-width: 640px; margin-bottom: 36px; }
+    h2 {
+      font-size: 13px;
+      font-weight: 650;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 40px 0 14px;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin-bottom: 16px;
+    }
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 720px) { .split { grid-template-columns: 1fr; } }
+    .box h3 { font-size: 15px; margin-bottom: 8px; }
+    .box ul { padding-left: 18px; color: var(--muted); font-size: 14px; }
+    .box li { margin: 4px 0; }
+    .box.us { border-left: 3px solid var(--wa); }
+    .box.them { border-left: 3px solid #94a3b8; }
+    .mermaid { display: flex; justify-content: center; overflow-x: auto; }
+    .note { font-size: 13px; color: var(--muted); margin-top: 10px; }
+    footer { margin-top: 40px; font-size: 12px; color: var(--muted); }
+    .env-tag {
+      display: inline-block; margin-left: 8px; font-size: 11px; color: var(--muted);
+      background: #f1f5f9; border: 1px solid #e2e8f0; padding: 1px 8px; border-radius: 999px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 环境来源: 产品架构说明（非 autocava.com.mx 复刻） -->
+  <!-- 环境来源: 产品架构说明（非 autocava.com.mx 复刻） -->
+  <div class="top">
+    <a href="index.html">← 返回首页</a>
+    <nav>
+      <a href="架构-领导视角-MVP1.html"><strong>领导视角</strong></a>
+      <a href="架构-研发视角-MVP1.html">研发视角</a>
+      <a href="docs.html">需求文档中心</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="badge">MVP-1 · 给领导看 <span class="env-tag">环境：产品架构说明（非 autocava.com.mx 复刻）</span></div>
+    <h1>AI Sales 怎么运转</h1>
+    <p class="lead">线索进 CRM 后，AI 经 WhatsApp 按任务推进；搞不定或预审通过时转销售。消息走 ycloud，策略与收件箱自建。</p>
+
+    <h2>一句话分工</h2>
+    <div class="split">
+      <div class="panel box us">
+        <h3>CAVi 自建</h3>
+        <ul>
+          <li>AI 任务进度（①–④）与节奏</li>
+          <li>统一客服收件箱 / 线索详情 / AI 跟进概要</li>
+          <li>转人工（特殊出口）+ SLA + 销售认领</li>
+          <li>线索状态与跟进记录</li>
+        </ul>
+      </div>
+      <div class="panel box them">
+        <h3>ycloud 只做管道</h3>
+        <ul>
+          <li>发 WhatsApp 消息</li>
+          <li>收客户回复（Webhook）</li>
+          <li>HSM 模板消息</li>
+          <li>不用 ycloud Inbox</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>AI 主路径（工作台右侧「AI 任务进度」）</h2>
+    <div class="panel">
+      <div class="mermaid">
+flowchart LR
+  A[① 首次跟进] --> B[② 收集需求]
+  B --> C[③ 意向识别]
+  C --> D[④ 预审收集]
+  D --> E[成交条件成熟]
+      </div>
+      <p class="note">转人工不是第⑤步：任意阶段可跳出（客户要真人 / AI 无法完成 / 预审通过等）→ 待销售接管。</p>
+    </div>
+
+    <h2>主链路（客户 → 销售）</h2>
+    <div class="panel">
+      <div class="mermaid">
+flowchart LR
+  A[线索进 CRM] --> B[① 首次跟进<br/>HSM]
+  B --> C[客户 WA 回复]
+  C --> P[②③④ AI 推进]
+  P -->|继续| C
+  P -->|特殊出口| F[待销售接管]
+  F --> G[销售跟进中]
+  G --> H[成交 / 暂缓 / 战败]
+  P -->|规则关闭| X[战败 / 失活 / 暂缓]
+      </div>
+      <p class="note">工作台 Tab：全部 / AI 跟进中 / 待销售接管 / 销售跟进中。转人工 SLA：工作时间 08:30–21:00 内 30 分钟；非工时顺延次日 08:30 起算 30 分钟。</p>
+    </div>
+
+    <h2>销售看到什么（WhatsApp Agent 工作台）</h2>
+    <div class="panel">
+      <div class="mermaid">
+flowchart TB
+  WA["<b>WhatsApp Agent</b><br/>一级菜单 · 工作台首页"]
+  WA --> TAB["<b>顶部 Tab 切换</b><br/>5 模块间跳转"]
+  TAB --> M1["工作台<br/>KPI + 模块卡片"]
+  TAB --> M2["AI 跟进概要<br/>销售 / 老板视角"]
+  TAB --> M3["统一客服收件箱<br/>4 Tab · AI/待接管/销售跟进"]
+  TAB --> M4["跟进策略 Skill<br/>HSM + SOP + SLA（批次 4）"]
+  TAB --> M5["知识库（CAVi）<br/>销售问 CAVi 拿答案（批次 2）"]
+  M3 --> T1["AI 跟进中"]
+  M3 --> T2["待销售接管"]
+  M3 --> T3["销售跟进中"]
+  T1 & T2 & T3 --> D["线索详情 · AI 时间线"]
+      </div>
+      <p class="note">侧栏一级菜单「WhatsApp Agent」直接跳转工作台首页（批次 3 · 顶部 Tab 切换）；4 模块平铺在工作台顶部 Tab，子模块为独立 HTML 互链。原「线索库」折叠菜单保留。</p>
+    </div>
+
+    <footer>WhatsApp AI Sales Agent · 架构说明 · 领导视角 · MVP-1</footer>
+  </div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose',
+      flowchart: { curve: 'basis', padding: 12 } });
+  </script>
+</body>
+</html>

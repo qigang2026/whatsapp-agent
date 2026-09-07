@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<!--
+  页面: 知识库（cavi）
+  用途: 销售在与客户跟进时遇到问题，可在此与 CAVi 对话式沟通，快速获取答案
+        并一键复制 / 发送到 WhatsApp 与客户对话
+  设计参考: https://www.autocava.com.mx/cavi（窄侧栏 + 中央紫色聊天区 + 推荐问卡片）
+  数据源: CAVi 答案默认引用 autocava.com.mx 可信数据（车系参数 / 起售价 / 金融条款）
+  环境来源: 本地静态原型 · 线上数据以 autocava.com.mx 灰度/线上为准
+-->
+<title>知识库（CAVi） · Asistente IA de Compra</title>
+<style>
+  /* ========== Base Tokens（对齐 autocava.com.mx 视觉）========== */
+  :root {
+    --bg-page: #ffffff;
+    --bg-soft: #F7F5FB;          /* 中央聊天区淡紫底 */
+    --bg-sidebar: #FFFFFF;
+    --border: #ECE9F1;
+    --border-soft: #F1EFF4;
+    --text-main: #1F1635;
+    --text-regular: #4A4458;
+    --text-secondary: #807A8E;
+    --text-placeholder: #B3ADC1;
+
+    --primary: #7C4DFF;          /* 紫色 CAVi 主色 */
+    --primary-2: #A78BFA;
+    --primary-soft: #EDE7FF;
+    --primary-hover: #6939F0;
+
+    --warn: #FFC422;
+    --warn-soft: #FFF6DA;
+
+    --green: #25D366;            /* WhatsApp 绿 */
+    --green-soft: #E8F8F1;
+
+    --shadow-card: 0 6px 24px rgba(124, 77, 255, 0.08);
+    --radius-card: 18px;
+    --radius-btn: 999px;
+
+    --font: "Inter", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--text-main);
+    background: var(--bg-soft);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; }
+
+  /* ========== 整体布局 ========== */
+  /* 旧版 2 列 .app 已废弃 · 现在使用后台 .layout（flex）+ .sidebar + .main + .chat-host */
+
+  /* ========== 1. 左侧导航栏（与「工作台 / 跟进策略-Skill / 统一客服收件箱」统一，由下方 .sidebar 块定义）========== */
+  /* ========== 2. 中央聊天区 ========== */
+  .chat {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--bg-soft);
+    overflow: hidden;
+  }
+  .chat-header {
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-page);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .chat-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .chat-title svg { width: 22px; height: 22px; color: var(--primary); }
+  .chat-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .chat-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pill {
+    background: var(--primary-soft);
+    color: var(--primary);
+    border-radius: var(--radius-btn);
+    padding: 5px 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .pill svg { width: 12px; height: 12px; }
+  .pill.success { background: var(--green-soft); color: var(--green); }
+  .new-chat-btn {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-btn);
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .new-chat-btn:hover { background: var(--primary-hover); }
+  .new-chat-btn svg { width: 14px; height: 14px; }
+
+  /* 流式对话 */
+  .chat-stream {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 28px 16px;
+  }
+  .chat-stream::-webkit-scrollbar { width: 6px; }
+  .chat-stream::-webkit-scrollbar-thumb { background: rgba(124,77,255,0.18); border-radius: 3px; }
+
+  /* 欢迎（与 autocava 一致：头像 + 标题 + 推荐问卡片） */
+  .welcome {
+    text-align: center;
+    max-width: 760px;
+    margin: 24px auto 28px;
+  }
+  .welcome-avatar {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 14px;
+  }
+  .welcome-avatar-img {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFD9B8 0%, #F5B894 100%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(245, 184, 148, 0.35);
+  }
+  .welcome-hola {
+    position: absolute;
+    right: -10px; top: 0;
+    background: var(--warn);
+    color: #1F1635;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 10px 10px 10px 2px;
+    transform: rotate(8deg);
+  }
+  .welcome-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 6px;
+  }
+  .welcome-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 26px;
+  }
+  .welcome-tip {
+    text-align: left;
+    font-size: 14px;
+    color: var(--text-main);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .welcome-tip b { color: var(--primary); font-weight: 700; }
+  .quick-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .quick-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    transition: all 0.15s;
+  }
+  .quick-card:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-1px);
+  }
+  .quick-card-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: var(--primary-soft);
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .quick-card-icon svg { width: 14px; height: 14px; }
+  .quick-card-body {
+    flex: 1;
+    min-width: 0;
+    color: var(--text-main);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .quick-card-arrow {
+    color: var(--text-placeholder);
+    font-size: 14px;
+    align-self: center;
+  }
+
+  /* 对话消息 */
+  .msg { margin: 0 auto 18px; max-width: 760px; }
+  .msg-q {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+  }
+  .msg-q-bubble {
+    background: var(--primary);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 14px 14px 4px 14px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    max-width: 70%;
+  }
+  .msg-a { display: flex; gap: 10px; }
+  .msg-a-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFD9B8, #F5B894);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .msg-a-bubble {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 4px 14px 14px 14px;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--text-regular);
+    flex: 1;
+  }
+  .msg-a-bubble p { margin: 0 0 8px; }
+  .msg-a-bubble p:last-child { margin-bottom: 0; }
+  .msg-a-bubble strong { color: var(--text-main); }
+  .msg-a-bubble code {
+    background: var(--primary-soft);
+    color: var(--primary);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .msg-a-bubble .src-link { color: var(--primary); font-size: 12px; }
+
+  .msg-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .msg-act {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: var(--radius-btn);
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-regular);
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .msg-act:hover { border-color: var(--primary); color: var(--primary); }
+  .msg-act svg { width: 12px; height: 12px; }
+  .msg-act.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .msg-act.primary:hover { background: var(--primary-hover); }
+  .msg-act.green { background: var(--green); color: #fff; border-color: var(--green); }
+  .msg-act.green:hover { opacity: 0.9; }
+
+  /* 输入区 */
+  .chat-input {
+    padding: 14px 28px 22px;
+    background: transparent;
+    flex-shrink: 0;
+  }
+  .input-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 12px 14px 10px;
+    box-shadow: 0 4px 16px rgba(124,77,255,0.06);
+  }
+  .input-card:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(124,77,255,0.12);
+  }
+  .input-textarea {
+    width: 100%;
+    min-height: 24px;
+    max-height: 160px;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-main);
+    background: transparent;
+    line-height: 1.5;
+  }
+  .input-textarea::placeholder { color: var(--text-placeholder); }
+  .input-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 8px;
+  }
+  .chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    background: var(--bg-soft);
+    color: var(--text-regular);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-btn);
+    padding: 4px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .chip:hover { border-color: var(--primary); color: var(--primary); }
+  .chip svg { width: 12px; height: 12px; }
+  .send-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .send-btn:hover { background: var(--primary-hover); }
+  .send-btn:disabled { background: var(--border); cursor: not-allowed; }
+  .send-btn svg { width: 16px; height: 16px; }
+  .input-hint {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-placeholder);
+  }
+
+  /* Toast 提示 */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1F1635;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    box-shadow: 0 10px 30px rgba(31,22,53,0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s;
+    z-index: 1000;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ========== 响应式 ========== */
+  @media (max-width: 1100px) {
+    .app { grid-template-columns: 200px 1fr; }
+    .quick-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 768px) {
+    body { overflow: auto; }
+    .app { grid-template-columns: 1fr; height: auto; }
+    .sidebar { display: none; }
+    .chat-stream { padding: 18px; }
+    .chat-input { padding: 12px 18px 18px; }
+  }
+
+  /* ========== 后台统一外壳（与跟进策略-Skill/统一客服收件箱/工作台 一致）========== */
+  .sidebar {
+    width: 200px;
+    background: #232B2F;
+    border-right: 1px solid #1c2123;
+    color: #BFC9D4;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: relative;
+  }
+  /* logo 区 */
+  .sidebar-logo {
+    height: 56px;
+    background: #353946;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    flex-shrink: 0;
+  }
+  .sidebar-logo img { height: 36px; width: auto; display: block; }
+  /* 收起按钮（贴右边沿、悬浮）*/
+  .sidebar-toggle {
+    position: absolute;
+    top: 16px; right: -12px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    padding: 0;
+    transition: color .15s, border-color .15s;
+  }
+  .sidebar-toggle:hover { color: var(--primary); border-color: var(--primary); }
+  .sidebar-toggle svg { width: 12px; height: 12px; transition: transform .2s ease; }
+  /* 侧栏收起态 */
+  .layout.sidebar-collapsed .sidebar { width: 56px; }
+  .layout.sidebar-collapsed .sidebar-logo img { height: 28px; }
+  .layout.sidebar-collapsed .menu-item > span:not(.badge):not(.arrow),
+  .layout.sidebar-collapsed .submenu-item > span:not(.badge):not(.arrow) { display: none; }
+  .layout.sidebar-collapsed .menu-item .arrow,
+  .layout.sidebar-collapsed .submenu-item .arrow { display: none; }
+  .layout.sidebar-collapsed .submenu { display: none; }
+  .layout.sidebar-collapsed .menu-item { justify-content: center; padding: 0; }
+  .layout.sidebar-collapsed .sidebar-toggle svg { transform: rotate(180deg); }
+  /* 菜单 */
+  .menu { padding: 6px 0; flex: 1; overflow-y: auto; }
+  .menu::-webkit-scrollbar { width: 4px; }
+  .menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+  .menu-item {
+    height: 42px;
+    display: flex; align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    color: #BFC9D4;
+    cursor: pointer;
+    position: relative;
+    font-size: 13px;
+    user-select: none;
+    text-decoration: none;
+  }
+  .menu-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
+  .menu-item.active { background: #1F8FE9; color: #FFFFFF; }
+  .menu-item.active::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #fff;
+  }
+  .menu-item .icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .menu-item .arrow { margin-left: auto; font-size: 11px; }
+  .menu-item > span:not(.arrow) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ========== 后台 topbar + 4 模块 TAB bar（与其他后台文件一致）========== */
+  .layout { display: flex; height: 100vh; overflow: hidden; }
+  .main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+  }
+  .topbar {
+    height: 56px;
+    background: #fff;
+    border-bottom: 1px solid var(--border-soft);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .topbar-crumb {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .topbar-crumb svg { color: var(--primary); }
+  .topbar-crumb .sep { color: var(--text-placeholder); margin: 0 2px; }
+  .topbar-crumb .current { color: var(--text-main); font-weight: 500; }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .topbar-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .topbar-meta .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.15);
+  }
+  .avatar-circle {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  /* 4 模块 TAB bar（与跟进策略-Skill 等文件一致） */
+  .wa-tabbar {
+    height: 46px;
+    background: #fff;
+    border-bottom: 1px solid var(--border-soft);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+  .wa-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+    height: 100%;
+    color: var(--text-regular);
+    font-size: 13px;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: color .15s, border-color .15s;
+  }
+  .wa-tab .t-icon { width: 14px; height: 14px; flex-shrink: 0; }
+  .wa-tab .t-badge {
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  .wa-tab .t-badge.danger { background: #FEE; color: var(--danger); }
+  .wa-tab:hover { color: var(--primary); }
+  .wa-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 500;
+  }
+
+  /* 把原 chat 区域塞入 main 容器，需要吃掉自己的高度限制 */
+  .chat-host {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    background: var(--bg-soft);
+  }
+
+  /* A. 会话记录侧栏（280px · 浅色卡片样式，与 autocava 风格统一） */
+  .session-rail {
+    background: #fff;
+    border-right: 1px solid var(--border-lighter);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .session-rail-head {
+    height: 56px;
+    padding: 0 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border-lighter);
+    flex-shrink: 0;
+  }
+  .session-rail-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600;
+    color: var(--text-main);
+  }
+  .session-rail-title svg { width: 16px; height: 16px; color: var(--primary); }
+  .session-rail-new {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid var(--border-lighter);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .session-rail-new:hover { background: var(--primary-soft-bg); color: var(--primary); border-color: var(--primary); }
+  .session-rail-new svg { width: 14px; height: 14px; }
+
+  .session-rail-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-lighter);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .session-rail-search svg {
+    position: absolute; left: 22px; top: 50%;
+    transform: translateY(-50%);
+    width: 13px; height: 13px;
+    color: var(--text-placeholder);
+  }
+  .session-rail-search input {
+    width: 100%; height: 30px;
+    padding: 0 10px 0 30px;
+    border: 1px solid var(--border-lighter);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-main);
+    background: var(--bg-soft);
+    outline: none;
+    transition: border-color .15s;
+  }
+  .session-rail-search input:focus { border-color: var(--primary); background: #fff; }
+
+  .session-rail-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 8px 8px 16px;
+  }
+  .session-group-label {
+    padding: 10px 8px 4px;
+    font-size: 11px;
+    color: var(--text-placeholder);
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .session-item {
+    position: relative;
+    display: block;
+    padding: 10px 10px 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 2px;
+    text-decoration: none;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .session-item:hover { background: var(--bg-soft); }
+  .session-item.active {
+    background: var(--primary-soft-bg);
+  }
+  .session-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 8px; bottom: 8px;
+    width: 3px;
+    background: var(--primary);
+    border-radius: 0 2px 2px 0;
+  }
+  .session-item .session-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-main);
+    margin-bottom: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .session-item .session-preview {
+    display: block;
+    font-size: 11px;
+    color: var(--text-secondary);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 100%;
+  }
+  .session-item .session-time {
+    position: absolute;
+    top: 10px; right: 10px;
+    font-size: 10px;
+    color: var(--text-placeholder);
+  }
+  .session-item.active .session-title { color: var(--primary); font-weight: 600; }
+
+  /* ============ 原 chat-host 内的 chat 区域 grid 占位 ============ */
+    overflow: hidden;
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ========== 1. 左侧导航（与「工作台」完全统一 · 侧栏 logo + 收起按钮 + 菜单）========== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="https://cdn.autocava.com.mx/_nuxt/asset/logo.v3.mLItLIXo.svg" alt="AutoCava" />
+    </div>
+    <button type="button" class="sidebar-toggle" id="sidebarToggle" title="收起/展开侧栏" aria-label="收起侧栏">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+
+    <div class="menu">
+      <!-- 金融订单 -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/></svg>
+        <span>金融订单</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 网站管理 -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
+        <span>网站管理</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 车型库 -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14l-1.5-5h-11z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M3 17v-4l3-5h12l3 5v4"/></svg>
+        <span>车型库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 线索库（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>线索库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <a href="WhatsApp-Agent-PC.html" class="menu-item active">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span>WhatsApp Agent</span>
+      </a>
+
+      <!-- 用户管理 -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1c0-3 3-5 8-5s8 2 8 5v1"/></svg>
+        <span>用户管理</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 内容库 -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+        <span>内容库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- System Monitor -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>System Monitor</span>
+        <span class="arrow">▾</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========== 2. 主区域 ========== -->
+  <div class="main">
+
+    <!-- 顶部面包屑（与其他后台文件一致） -->
+    <header class="topbar">
+      <div class="topbar-crumb">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span>WhatsApp Agent</span>
+        <span class="sep">/</span>
+        <span class="current">知识库（CAVi）</span>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-meta">
+          <span class="status-dot"></span>
+          <span>ycloud · 在线</span>
+        </div>
+        <div class="avatar-circle" title="销售 · Maria">M</div>
+      </div>
+    </header>
+
+    <!-- 4 模块 TAB bar -->
+    <nav class="wa-tabbar">
+      <a href="WhatsApp-Agent-PC.html" class="wa-tab">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        <span>工作台</span>
+      </a>
+      <a href="统一客服收件箱-PC.html" class="wa-tab">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <span>统一客服收件箱</span>
+        <span class="t-badge danger">2</span>
+      </a>
+      <a href="跟进策略-Skill-PC.html" class="wa-tab">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>跟进策略 Skill</span>
+      </a>
+      <a href="知识库(cavi).html" class="wa-tab active">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>知识库（CAVi）</span>
+      </a>
+    </nav>
+
+    <!-- 中央：左 280px 会话记录 + 右 chat（保留 autocava 风格） -->
+    <div class="chat-host">
+
+      <!-- A. 会话记录侧栏（替代旧 nav 里的 Sesiones） -->
+      <aside class="session-rail">
+        <div class="session-rail-head">
+          <div class="session-rail-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            <span>会话记录</span>
+          </div>
+          <button class="session-rail-new" type="button" onclick="resetChat()" title="Nueva conversación">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+
+        <div class="session-rail-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Buscar sesión…" />
+        </div>
+
+        <div class="session-rail-list">
+          <div class="session-group-label">今天</div>
+          <a class="session-item active" href="javascript:void(0)">
+            <span class="session-title">XPENG G6 方案对比</span>
+            <span class="session-preview">48 期 vs 72 期哪个划算？</span>
+            <span class="session-time">14:28</span>
+          </a>
+          <a class="session-item" href="javascript:void(0)">
+            <span class="session-title">月供 $9,500 推荐车型</span>
+            <span class="session-preview">$25,000 月收入能买什么车？</span>
+            <span class="session-time">11:02</span>
+          </a>
+
+          <div class="session-group-label">昨天</div>
+          <a class="session-item" href="javascript:void(0)">
+            <span class="session-title">Tiguan 信贷利率</span>
+            <span class="session-preview">24% vs 18% 利率差异</span>
+            <span class="session-time">昨天 17:45</span>
+          </a>
+          <a class="session-item" href="javascript:void(0)">
+            <span class="session-title">Versa 试驾预约</span>
+            <span class="session-preview">Polanco 门店 周六时段</span>
+            <span class="session-time">昨天 10:12</span>
+          </a>
+
+          <div class="session-group-label">本周</div>
+          <a class="session-item" href="javascript:void(0)">
+            <span class="session-title">客户对比 CR-V vs Tucson</span>
+            <span class="session-preview">竞品配置 + 残值对比</span>
+            <span class="session-time">周三 15:30</span>
+          </a>
+          <a class="session-item" href="javascript:void(0)">
+            <span class="session-title">保险方案 MG5</span>
+            <span class="session-preview">年度保费 + 折扣说明</span>
+            <span class="session-time">周二 09:18</span>
+          </a>
+        </div>
+      </aside>
+
+      <!-- B. 中央聊天区（保留 autocava 风格） -->
+      <section class="chat">
+        <div class="chat-header">
+          <div>
+            <div class="chat-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              Asesor IA de Compra y Financiamiento
+            </div>
+            <div class="chat-subtitle">问 CAVi 任何问题 · 客户的车系 / 金融 / 保险 / 竞品对比，CAVi 给答案你拿去回客户</div>
+          </div>
+          <div class="chat-header-right">
+            <button class="new-chat-btn" type="button" onclick="resetChat()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nueva conversación
+            </button>
+          </div>
+        </div>
+
+    <div class="chat-stream" id="chatStream">
+      <!-- 欢迎区 + 推荐问卡片（与 autocava 一致） -->
+      <div class="welcome">
+        <div class="welcome-avatar">
+          <div class="welcome-avatar-img">👩🏻‍💼</div>
+          <span class="welcome-hola">¡Hola!</span>
+        </div>
+        <div class="welcome-title">Asesor IA de Compra y Financiamiento</div>
+        <div class="welcome-desc">我是 CAVi，你的购车与金融顾问助手。客户问了什么不懂的，直接问我就行，我会引用 autocava.com.mx 的可信数据给你答案。</div>
+
+        <div class="welcome-tip">Prueba a <b>preguntarme</b> esto:</div>
+        <div class="quick-grid" id="quickGrid">
+          <!-- JS 注入 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 输入区 -->
+    <div class="chat-input">
+      <div class="input-card">
+        <textarea class="input-textarea" id="inputBox" placeholder="Escribe tu mensaje..." rows="1"></textarea>
+        <div class="input-bottom">
+          <div class="chip-row">
+            <button class="chip" type="button" onclick="askFromChip('Consultar planes')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              Consultar planes
+            </button>
+            <button class="chip" type="button" onclick="askFromChip('Vehículos sugeridos')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14l-1.5-5h-11z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M3 17v-4l3-5h12l3 5v4"/></svg>
+              Vehículos sugeridos
+            </button>
+            <button class="chip" type="button" onclick="askFromChip('Consultar experto')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Consultar experto
+            </button>
+          </div>
+          <button class="send-btn" type="button" onclick="sendMsg()" title="Enviar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="input-hint">El asistente puede cometer errores.</div>
+    </div>
+  </section>
+    </div><!-- /chat-host -->
+  </div><!-- /main -->
+
+</div><!-- /layout -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ========== 推荐问卡片（es 文案 · 对齐 autocava）==========
+  var QUICK_QUESTIONS = [
+    { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>', text: '¿Qué plan de financiación es mejor, el de 48 meses o el de 72 meses?' },
+    { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14l-1.5-5h-11z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>', text: 'Recomiéndame algunos carros para moverme por la ciudad.' },
+    { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>', text: '¿Qué auto puedo comprar si gano $25,000 al mes?' },
+    { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>', text: '¿Cuánto al mes por un MG5?' },
+    { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></svg>', text: '¿Qué banco da la mensualidad más baja con 20% de enganche?' },
+    { icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', text: '¿Cuál es el pago inicial mínimo con ustedes?' }
+  ];
+
+  var ICON_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+
+  // ========== 预置回答（演示用，与销售场景一致）==========
+  var KNOWLEDGE_BASE = [
+    {
+      keys: ['月供', 'finance', 'plan', 'mensualidad', '金融', '48', '72'],
+      answer: '<p>以 XPENG G6 为例（进入价约 $899,000 MXN），常见金融方案有 3 种：</p>' +
+              '<p>① <strong>36 期 · 0% 利息</strong>（推荐）：月供约 <code>$13,200 MXN</code>，首付 20% · 条件 buró ≥ 720</p>' +
+              '<p>② <strong>48 期 · 9.99% 利息</strong>：月供约 <code>$11,800 MXN</code>，利息累计较高</p>' +
+              '<p>③ <strong>24 期 · 0% 利息</strong>：月供约 <code>$17,800 MXN</code>，首付 20%</p>' +
+              '<p style="color:var(--text-secondary); font-size:12px; margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);">来源：<a class="src-link" href="#">autocava.com.mx · XPENG G6 金融方案页</a> + CAVi 金融计算器 v1.2</p>'
+    },
+    {
+      keys: ['竞品', '对比', '海豹', 'tiguan', 'rav4', 'model y', '海狮', 'sealion', 'dolphin'],
+      answer: '<p>如果客户预算在月供 $13k–$15k MXN 区间，3 款重点候选：</p>' +
+              '<p>① <strong>XPENG G6</strong>：续航 580 km · 0–100 km/h 6.9 s · 月供约 <code>$13,200</code></p>' +
+              '<p>② <strong>BYD 海狮 07 EV</strong>：续航 610 km · 0–100 km/h 7.3 s · 月供约 <code>$11,500</code></p>' +
+              '<p>③ <strong>Tesla Model Y RWD</strong>：续航 430 km · 0–100 km/h 6.9 s · 月供约 <code>$16,800</code></p>' +
+              '<p style="color:var(--text-secondary); font-size:12px; margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);">来源：<a class="src-link" href="#">autocava.com.mx · 车型对比页</a></p>'
+    },
+    {
+      keys: ['保险', 'seguro', 'cobertura'],
+      answer: '<p>XPENG G6 标配保险方案包含：</p>' +
+              '<p>① <strong>责任险（RC）</strong> · 强制 · 年保费约 <code>$4,800 MXN</code></p>' +
+              '<p>② <strong>车损险（Danios）</strong> · 可选 · 贷款客户<strong>必须</strong>，约 <code>$11,200 MXN/年</code></p>' +
+              '<p>③ <strong>盗抢险（Robo）</strong> · CDMX 区域建议加 · 约 <code>$3,400 MXN/年</code></p>' +
+              '<p style="color:var(--text-secondary); font-size:12px; margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);">来源：CAVi 知识库 v0.4 §3.5 · 与 Zurich / GNP 对比</p>'
+    },
+    {
+      keys: ['试驾', 'test drive', 'cita'],
+      answer: '<p>XPENG G6 试驾流程：</p>' +
+              '<p>① 销售预约 · 提前 24h 锁定车辆与时段（CDMX Polanco / Santa Fe 体验店）</p>' +
+              '<p>② 客户到店 · 携带驾照 + INE · 试驾前签署责任协议</p>' +
+              '<p>③ 试驾路线 · 高速 30 km + 城区 20 km，约 50 min</p>' +
+              '<p>④ 当天跟进 · 试驾后 2 小时内 WhatsApp 跟进 + CAVi 自动生成反馈报告</p>'
+    },
+    {
+      keys: ['保修', 'garantía', 'mantenimiento', '保养'],
+      answer: '<p>XPENG G6 售后政策：</p>' +
+              '<p>① <strong>整车保修</strong>：4 年 / 10 万 km（先到为准）</p>' +
+              '<p>② <strong>电池保修</strong>：8 年 / 16 万 km</p>' +
+              '<p>③ <strong>保养周期</strong>：每 12 个月 / 2 万 km · 单次约 <code>$3,200 MXN</code></p>'
+    },
+    {
+      keys: ['buró', '信用', 'score'],
+      answer: '<p><strong>不建议 0% 利息方案</strong>。36 期 0% 利息硬条件是 buró ≥ 720。</p>' +
+              '<p>客户 buró 680–700 区间，建议改用：</p>' +
+              '<p>① <strong>36 期 + 9.99%</strong>：月供较高</p>' +
+              '<p>② <strong>48 期 + 9.99%</strong>：月供最低，最稳</p>' +
+              '<p style="color:var(--text-secondary); font-size:12px; margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);">来源：CAVi 规则 · buró 阈值 v0.4</p>'
+    },
+    {
+      keys: ['hola', '你好', 'hello'],
+      answer: '<p>Hola 👋，我是 CAVi。客户问了什么不懂的，直接问我就行。比如：</p>' +
+              '<p>· XPENG G6 36 期 / 48 期哪个更划算？</p>' +
+              '<p>· G6 vs 海狮 07 EV 怎么对比？</p>' +
+              '<p>· 客户 buró 680，能拿到 0% 利息方案吗？</p>'
+    }
+  ];
+
+  var DEFAULT_ANSWER = '<p>这个问题 CAVi 暂时没有完整答案。建议你：</p>' +
+                       '<p>① 拆解问题 · 比如「G6 vs 海狮 07 EV 哪个性价比高？」</p>' +
+                       '<p>② 标 <code>[需 PM 确认]</code> 后联系产品经理</p>' +
+                       '<p style="color:var(--text-secondary); font-size:12px; margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);">数据来源：CAVi 知识库 v0.4 · 暂未覆盖该问题</p>';
+
+  function findAnswer(text) {
+    var t = text.toLowerCase();
+    for (var i = 0; i < KNOWLEDGE_BASE.length; i++) {
+      var keys = KNOWLEDGE_BASE[i].keys;
+      for (var j = 0; j < keys.length; j++) {
+        if (t.indexOf(keys[j].toLowerCase()) !== -1) {
+          return KNOWLEDGE_BASE[i].answer;
+        }
+      }
+    }
+    return DEFAULT_ANSWER;
+  }
+
+  // ========== DOM ==========
+  var stream = document.getElementById('chatStream');
+  var input = document.getElementById('inputBox');
+  var toast = document.getElementById('toast');
+
+  // 注入推荐问卡片
+  (function () {
+    var html = '';
+    for (var i = 0; i < QUICK_QUESTIONS.length; i++) {
+      var q = QUICK_QUESTIONS[i];
+      html += '<button class="quick-card" type="button" onclick="askFromChip(' + JSON.stringify(q.text) + ')">' +
+                '<span class="quick-card-icon">' + q.icon + '</span>' +
+                '<span class="quick-card-body">' + escapeHtml(q.text) + '</span>' +
+                '<span class="quick-card-arrow">' + ICON_ARROW + '</span>' +
+              '</button>';
+    }
+    document.getElementById('quickGrid').innerHTML = html;
+  })();
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+    });
+  }
+
+  function scrollToBottom() {
+    setTimeout(function () {
+      stream.scrollTop = stream.scrollHeight;
+    }, 30);
+  }
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { toast.classList.remove('show'); }, 1800);
+  }
+
+  function renderMsg(role, html) {
+    var block = document.createElement('div');
+    block.className = 'msg';
+    if (role === 'q') {
+      block.innerHTML =
+        '<div class="msg-q"><div class="msg-q-bubble">' + escapeHtml(html) + '</div></div>';
+    } else {
+      block.innerHTML =
+        '<div class="msg-a">' +
+          '<div class="msg-a-avatar">👩🏻‍💼</div>' +
+          '<div style="flex:1; min-width:0;">' +
+            '<div class="msg-a-bubble">' + html + '</div>' +
+            '<div class="msg-actions">' +
+              '<button class="msg-act primary" onclick="copyAnswer(this, ' + JSON.stringify(stripHtml(html)) + ')">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+                '复制到剪贴板' +
+              '</button>' +
+              '<button class="msg-act green" onclick="sendToWA(this, ' + JSON.stringify(stripHtml(html)) + ')">' +
+                '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>' +
+                '插入到 WhatsApp' +
+              '</button>' +
+              '<button class="msg-act" onclick="markInternal(this)">' +
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+                '标注为内部用' +
+              '</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+    }
+    // 第一次回答时，把 welcome 区移除
+    var welcome = stream.querySelector('.welcome');
+    if (welcome) welcome.remove();
+    stream.appendChild(block);
+    scrollToBottom();
+  }
+
+  function stripHtml(html) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    return (div.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function sendMsg() {
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    input.style.height = 'auto';
+    handleAsk(text);
+  }
+
+  function askFromChip(text) {
+    input.value = text;
+    handleAsk(text);
+  }
+
+  function handleAsk(text) {
+    renderMsg('q', text);
+    // 模拟 CAVi 思考延迟
+    setTimeout(function () {
+      renderMsg('a', findAnswer(text));
+    }, 500);
+  }
+
+  function copyAnswer(btn, text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { showToast('✅ 已复制到剪贴板'); });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); showToast('✅ 已复制到剪贴板'); }
+      catch (e) { showToast('复制失败，请手动复制'); }
+      document.body.removeChild(ta);
+    }
+    btn.style.transform = 'scale(0.96)';
+    setTimeout(function () { btn.style.transform = ''; }, 150);
+  }
+
+  function sendToWA(btn, text) {
+    // 跳转到 统一客服收件箱 · 销售跟进中（演示用）
+    showToast('📨 已模拟推送到 WhatsApp（演示）');
+    btn.style.transform = 'scale(0.96)';
+    setTimeout(function () { btn.style.transform = ''; }, 150);
+  }
+
+  function markInternal(btn) {
+    btn.classList.toggle('marked');
+    if (!btn.style.color) {
+      btn.style.background = 'var(--warn-soft)';
+      btn.style.color = '#B67900';
+      btn.style.borderColor = 'transparent';
+    } else {
+      btn.style.background = '';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }
+    showToast('已标注为内部用 · 不发送给客户');
+  }
+
+  function resetChat() {
+    stream.innerHTML = '';
+    // 重新插入欢迎
+    var w = document.createElement('div');
+    w.className = 'welcome';
+    w.innerHTML =
+      '<div class="welcome-avatar">' +
+        '<div class="welcome-avatar-img">👩🏻‍💼</div>' +
+        '<span class="welcome-hola">¡Hola!</span>' +
+      '</div>' +
+      '<div class="welcome-title">Asesor IA de Compra y Financiamiento</div>' +
+      '<div class="welcome-desc">我是 CAVi，你的购车与金融顾问助手。客户问了什么不懂的，直接问我就行，我会引用 autocava.com.mx 的可信数据给你答案。</div>' +
+      '<div class="welcome-tip">Prueba a <b>preguntarme</b> esto:</div>' +
+      '<div class="quick-grid" id="quickGrid"></div>';
+    stream.appendChild(w);
+    var html = '';
+    for (var i = 0; i < QUICK_QUESTIONS.length; i++) {
+      var q = QUICK_QUESTIONS[i];
+      html += '<button class="quick-card" type="button" onclick="askFromChip(' + JSON.stringify(q.text) + ')">' +
+                '<span class="quick-card-icon">' + q.icon + '</span>' +
+                '<span class="quick-card-body">' + escapeHtml(q.text) + '</span>' +
+                '<span class="quick-card-arrow">' + ICON_ARROW + '</span>' +
+              '</button>';
+    }
+    document.getElementById('quickGrid').innerHTML = html;
+    scrollToBottom();
+  }
+
+  // ========== 输入框自动撑高 + Enter 发送 ==========
+  input.addEventListener('input', function () {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+  });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMsg();
+    }
+  });
+</script>
+
+<script>
+// ========== 侧栏收起/展开（与「工作台/收件箱」完全统一）==========
+(function () {
+  var KEY = 'autocava_admin_sidebar_collapsed';
+  var layout = document.querySelector('.layout');
+  var btn = document.getElementById('sidebarToggle');
+  if (!layout || !btn) return;
+  function apply(collapsed) {
+    layout.classList.toggle('sidebar-collapsed', !!collapsed);
+    btn.title = collapsed ? '展开侧栏' : '收起侧栏';
+    btn.setAttribute('aria-label', btn.title);
+    try { localStorage.setItem(KEY, collapsed ? '1' : '0'); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  apply(saved === null ? false : saved === '1');
+  btn.addEventListener('click', function () {
+    apply(!layout.classList.contains('sidebar-collapsed'));
+  });
+})();
+</script>
+
+</body>
+</html>

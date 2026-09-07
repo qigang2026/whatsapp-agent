@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>架构 · 研发视角 · MVP-1</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --wa: #25D366;
+      --wa-dark: #128C7E;
+      --text: rgba(0,0,0,.88);
+      --muted: rgba(0,0,0,.55);
+      --line: #e7ebf3;
+      --bg: #f5f7fa;
+      --card: #fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    .top {
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .top a { color: var(--wa-dark); text-decoration: none; font-size: 13px; }
+    .top nav { display: flex; gap: 16px; flex-wrap: wrap; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 40px 24px 64px; }
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--wa-dark);
+      background: rgba(37,211,102,.12);
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+    h1 { font-size: 28px; font-weight: 650; margin-bottom: 8px; }
+    .lead { color: var(--muted); font-size: 15px; max-width: 720px; margin-bottom: 36px; }
+    h2 {
+      font-size: 13px;
+      font-weight: 650;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 40px 0 14px;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin-bottom: 16px;
+    }
+    .mermaid { display: flex; justify-content: center; overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      display: block;
+      overflow-x: auto;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; }
+    code {
+      font-size: 12px;
+      background: #f1f5f9;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+    .note { font-size: 13px; color: var(--muted); margin-top: 10px; }
+    .no { color: #b91c1c; }
+    footer { margin-top: 40px; font-size: 12px; color: var(--muted); }
+    .env-tag {
+      display: inline-block; margin-left: 8px; font-size: 11px; color: var(--muted);
+      background: #f1f5f9; border: 1px solid #e2e8f0; padding: 1px 8px; border-radius: 999px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 环境来源: 产品架构说明（非 autocava.com.mx 复刻） -->
+  <div class="top">
+    <a href="index.html">← 返回首页</a>
+    <nav>
+      <a href="架构-领导视角-MVP1.html">领导视角</a>
+      <a href="架构-研发视角-MVP1.html"><strong>研发视角</strong></a>
+      <a href="docs.html">需求文档中心</a>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <div class="badge">MVP-1 · 给研发看 <span class="env-tag">环境：产品架构说明（非 autocava.com.mx 复刻）</span></div>
+    <h1>系统分层与 ycloud 交互</h1>
+    <p class="lead">ycloud = 收发 + Webhook + HSM。任务引擎 / 状态机 / 统一收件箱 / Handoff+SLA 全部 CAVi 自建。不用 ycloud Inbox / Bot。</p>
+
+    <h2>分层</h2>
+    <div class="panel">
+      <div class="mermaid">
+flowchart TB
+  subgraph UI["CAVi 自建 · 销售工作台"]
+    WA["<b>WhatsApp Agent</b><br/>侧栏一级菜单 · 工作台首页<br/>（批次 3 · 顶部 5 Tab 切换）"]
+    Inbox[统一客服收件箱]
+    Detail[线索详情]
+    Dash[AI 跟进概要]
+    WA --> TabBar["<b>顶部 Tab 切换条</b><br/>5 模块 HTML 互链"]
+    TabBar --> Inbox
+    TabBar --> Dash
+    TabBar -.批次 4.-> Skill["跟进策略 Skill"]
+    TabBar --> CAVi["新会话 CAVi"]
+  end
+
+  subgraph ORCH["CAVi 自建 · 编排层"]
+    SM[线索状态机 · Tab]
+    TASK[AI 任务进度 ①–④]
+    HO[转人工特殊出口 + SLA]
+  end
+
+  subgraph YC["ycloud · 仅管道"]
+    Send[Send API]
+    WH[Webhook inbound / status]
+    HSM[HSM Template]
+  end
+
+  subgraph DATA["CAVi 业务数据"]
+    CRM[CRM 线索]
+    Log[跟进记录]
+    PC[预审字段进度]
+  end
+
+  CRM -->|lead.created| SM
+  SM --> TASK
+  TASK -->|发消息| Send
+  TASK -->|发模板| HSM
+  Send --> WA[(客户 WhatsApp)]
+  HSM --> WA
+  WA --> WH
+  WH --> TASK
+  WH --> Log
+  TASK --> HO
+  TASK --> PC
+  HO --> Inbox
+  SM --> Inbox
+  Log --> Detail
+  PC --> Detail
+  SM --> Dash
+      </div>
+      <p class="note">Inbox Tab = 归属态（AI / 待接管 / 销售跟进）；右侧任务进度 = AI 主路径 ①首次跟进→②收集需求→③意向识别→④预审收集。转人工不占主路径序号。</p>
+    </div>
+
+    <h2>主时序</h2>
+    <div class="panel">
+      <div class="mermaid">
+sequenceDiagram
+  participant CRM as CRM
+  participant CAVi as CAVi 编排
+  participant YC as ycloud
+  participant WA as 客户 WA
+  participant Sales as 销售工作台
+
+  CRM->>CAVi: 新线索
+  CAVi->>YC: Send HSM（① 首次跟进 · 窗外）
+  YC->>WA: 模板送达
+  WA->>YC: 客户回复
+  YC->>CAVi: Webhook inbound
+  Note over CAVi: 开 24h 会话窗 · 进入 ②③④
+  CAVi->>YC: Send 自由文本
+  YC->>WA: 消息
+  YC->>CAVi: status delivered/read/failed
+  alt 特殊出口 · 转人工
+    Note over CAVi: 客户要真人 / 预审通过 / AI 无法完成
+    CAVi->>Sales: 待销售接管 · 启动 SLA
+    Note over Sales: 工时 08:30–21:00 内 30min<br/>非工时：次日 08:30 起算 30min
+    Sales->>CAVi: 认领
+    Note over CAVi: AI 暂停发送
+    Sales->>YC: 销售发消息（经 CAVi→Send API）
+  end
+      </div>
+      <p class="note">窗口外只能 HSM；inbound 后 24h 内自由文本。窗口与 SLA 均由 CAVi 维护，发信前校验。</p>
+    </div>
+
+    <h2>ycloud 接入清单</h2>
+    <div class="panel">
+      <table>
+        <thead>
+          <tr><th>能力</th><th>方向</th><th>MVP-1</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Send API（text / media）</td><td>出站</td><td>用</td></tr>
+          <tr><td>HSM Template</td><td>出站</td><td>用（① 首联 / 窗外激活）</td></tr>
+          <tr><td>Webhook · inbound message</td><td>入站</td><td>用</td></tr>
+          <tr><td>Webhook · message status</td><td>入站</td><td>用（sent / delivered / read / failed）</td></tr>
+          <tr><td>ycloud Inbox / Assignment / Bot</td><td>—</td><td class="no">不用</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>MVP-1 状态（与工作台对齐）</h2>
+    <div class="panel">
+      <div class="mermaid">
+stateDiagram-v2
+  [*] --> AI跟进中: 线索创建 + ①首联
+  AI跟进中 --> 待销售接管: 转人工特殊出口
+  待销售接管 --> 销售跟进中: 销售认领
+  待销售接管 --> 待销售接管: SLA超时·升级主管
+  销售跟进中 --> 成交: 关闭成交
+  销售跟进中 --> 暂缓: 标记暂缓
+  AI跟进中 --> 战败: 明确拒绝
+  AI跟进中 --> 失活: D+7无回
+  AI跟进中 --> 暂缓: 客户延期
+  销售跟进中 --> 战败: 关闭无效
+      </div>
+      <p class="note">预审字段在 AI 跟进中收集（进度 n/8）；H5 表单见「完整版 · 预审+H5」，非本页阻断。</p>
+    </div>
+
+    <footer>WhatsApp AI Sales Agent · 架构说明 · 研发视角 · MVP-1</footer>
+  </div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose',
+      flowchart: { curve: 'basis', padding: 10 },
+      sequence: { mirrorActors: false } });
+  </script>
+</body>
+</html>

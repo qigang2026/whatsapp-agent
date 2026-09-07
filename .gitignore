@@ -26,4 +26,9 @@ pnpm-debug.log*
 
 # Wrangler / Cloudflare
 .wrangler/
-publish/
+
+# publish/ 内的过程产物（不进 GitHub，只留产物 HTML / 静态资源 / PRD）
+publish/_qa-screens/
+publish/.wrangler/
+publish/_qa-screens
+publish/.wrangler
