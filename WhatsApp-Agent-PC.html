@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!--
+  页面: WhatsApp Agent · 工作台首页
+  设计系统: 04-admin (Element UI 风格)
+  复用: 统一客服收件箱-PC.html 颜色 token + 字体 + 间距
+  数据源: Mock · 跳转到现有 4 个子模块
+
+  环境来源: 本地静态原型
+  入口: 侧栏一级菜单「WhatsApp Agent」(默认展开)
+-->
+<title>WhatsApp Agent · 工作台</title>
+<style>
+  /* ========== 基础 Token（与收件箱一致） ========== */
+  :root {
+    --primary: #419EFE;
+    --primary-hover: #66B4FF;
+    --primary-soft-bg: #ECF5FF;
+    --success: #67C23A;
+    --success-soft-bg: #F0F9E8;
+    --warning: #E6A23C;
+    --warning-soft-bg: #FDF6EC;
+    --danger: #F56C6C;
+    --danger-soft-bg: #FEF0F0;
+    --info: #909399;
+
+    --text-main: #303133;
+    --text-regular: #606266;
+    --text-secondary: #909399;
+    --text-placeholder: #C0C4CC;
+
+    --border-base: #DCDFE6;
+    --border-light: #E4E7ED;
+    --border-lighter: #EBEEF5;
+    --border-extra-light: #F2F6FC;
+
+    --bg-base: #F5F7FA;
+    --bg-page: #FFFFFF;
+
+    --sidebar-bg: #232B2F;
+    --sidebar-text: #BFC9D4;
+    --sidebar-text-active: #FFFFFF;
+    --sidebar-logo-bg: #353946;
+    --sidebar-hover: #2C333D;
+    --submenu-bg: #1E2529;
+    --submenu-active-bg: #2C333D;
+    --sidebar-active-bg: #1F8FE9;
+
+    --font-family: "PingFang SC", "Helvetica Neue", "Microsoft YaHei", "Source Han Sans CN", "Noto Sans CJK SC", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: var(--font-family); color: var(--text-main); font-size: 14px; background: var(--bg-base); -webkit-font-smoothing: antialiased; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { color: var(--primary-hover); }
+
+  /* ========== 布局 ========== */
+  .layout { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ========== 1. 侧栏 ========== */
+  .sidebar {
+    width: 200px;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .sidebar-logo {
+    height: 56px;
+    background: var(--sidebar-logo-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+  }
+  .sidebar-logo img { height: 36px; width: auto; display: block; }
+  .sidebar-toggle {
+    position: absolute;
+    top: 16px; right: -12px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 1px solid var(--border-light);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    padding: 0;
+    transition: color .15s, border-color .15s;
+  }
+  .sidebar-toggle:hover { color: var(--primary); border-color: var(--primary); }
+  .sidebar-toggle svg { width: 12px; height: 12px; transition: transform .2s ease; }
+  .menu { padding: 6px 0; flex: 1; overflow-y: auto; }
+  .menu::-webkit-scrollbar { width: 4px; }
+  .menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+  .menu-item {
+    height: 42px;
+    display: flex; align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    color: var(--sidebar-text);
+    cursor: pointer;
+    position: relative;
+    font-size: 13px;
+    user-select: none;
+  }
+  .menu-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
+  .menu-item.active { background: var(--sidebar-active-bg); color: var(--sidebar-text-active); }
+  .menu-item.active::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: #fff;
+  }
+  .menu-item .icon { width: 16px; height: 16px; flex-shrink: 0; }
+  .menu-item .arrow { margin-left: auto; font-size: 11px; }
+  .menu-item .badge {
+    margin-left: auto;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  .submenu { background: var(--submenu-bg); }
+  .submenu-item {
+    height: 36px;
+    display: flex; align-items: center;
+    padding: 0 16px 0 36px;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--sidebar-text);
+    cursor: pointer;
+    user-select: none;
+  }
+  .submenu-item:hover { background: rgba(255,255,255,0.04); color: #fff; }
+  .submenu-item.active { color: #fff; background: rgba(65, 158, 254, 0.2); }
+  .submenu-item .icon { width: 14px; height: 14px; }
+  .submenu-item .dot { margin-left: auto; }
+  .submenu-item .dot::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--danger);
+  }
+
+  /* ========== 2. 主区域 ========== */
+  .main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .topbar {
+    height: 56px;
+    background: #fff;
+    border-bottom: 1px solid var(--border-lighter);
+    padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .crumb {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .crumb .sep { color: var(--text-placeholder); }
+  .crumb .current { color: var(--text-main); font-weight: 500; }
+  .topbar-right { display: flex; align-items: center; gap: 14px; }
+  .topbar-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .avatar-circle {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 600;
+    font-size: 12px;
+  }
+
+  /* ========== WhatsApp Agent Tab 切换条 ========== */
+  .wa-tabbar {
+    height: 46px;
+    background: #fff;
+    border-bottom: 1px solid var(--border-lighter);
+    padding: 0 16px;
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+  .wa-tabbar::-webkit-scrollbar { height: 2px; }
+  .wa-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .wa-tab:hover { color: var(--primary); }
+  .wa-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 500;
+  }
+  .wa-tab .t-icon { width: 14px; height: 14px; flex-shrink: 0; }
+  .wa-tab .t-badge {
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+    font-size: 11px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .wa-tab .t-badge.danger {
+    background: var(--danger-soft-bg);
+    color: var(--danger);
+  }
+
+  /* ========== 内容滚动区 ========== */
+  .scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+  }
+
+  /* ========== Hero 标题 ========== */
+  .hero {
+    margin-bottom: 20px;
+  }
+  .hero.hero-compact {
+    margin-bottom: 16px;
+  }
+  .hero.hero-compact h1 {
+    font-size: 18px;
+  }
+  .hero h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hero h1 .wa-mark {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .hero h1 .wa-mark svg { width: 18px; height: 18px; color: #fff; }
+  .hero p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 720px;
+  }
+
+  /* ========== KPI 概览条 ========== */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: #fff;
+    border: 1px solid var(--border-lighter);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .kpi-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .kpi-label svg { width: 13px; height: 13px; color: var(--text-placeholder); }
+  .kpi-value {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.1;
+  }
+  .kpi-value.danger { color: var(--danger); }
+  .kpi-value.warning { color: var(--warning); }
+  .kpi-value.success { color: var(--success); }
+  .kpi-foot {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-placeholder);
+  }
+
+  /* ========== 4 卡片 Tab 工作台 ========== */
+  .workspace-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .module-card {
+    background: #fff;
+    border: 1px solid var(--border-lighter);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .module-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 12px rgba(65, 158, 254, 0.08);
+  }
+  .module-card .module-head {
+    display: flex; align-items: flex-start; gap: 12px;
+    margin-bottom: 12px;
+  }
+  .module-icon {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .module-icon.ai { background: var(--primary-soft-bg); color: var(--primary); }
+  .module-icon.inbox { background: var(--success-soft-bg); color: var(--success); }
+  .module-icon.skill { background: #F4ECFF; color: #7C4DFF; }
+  .module-icon.cavi { background: var(--warning-soft-bg); color: var(--warning); }
+  .module-icon svg { width: 20px; height: 20px; }
+  .module-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 2px;
+  }
+  .module-sub {
+    font-size: 11px;
+    color: var(--text-placeholder);
+  }
+  .module-desc {
+    font-size: 13px;
+    color: var(--text-regular);
+    line-height: 1.6;
+    margin-bottom: 14px;
+    flex: 1;
+  }
+  .module-stats {
+    display: flex; gap: 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border-lighter);
+  }
+  .module-stats .stat strong {
+    color: var(--text-main);
+    font-size: 15px;
+    font-weight: 600;
+    display: block;
+  }
+  .module-stats .stat.danger strong { color: var(--danger); }
+  .module-stats .stat.warning strong { color: var(--warning); }
+  .module-stats .stat.success strong { color: var(--success); }
+  .module-entry {
+    display: inline-flex;
+    align-items: center; gap: 4px;
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 500;
+  }
+  .module-entry svg { width: 12px; height: 12px; }
+
+  /* ========== 侧栏收起态 ========== */
+  .layout.sidebar-collapsed .sidebar { width: 56px; }
+  .layout.sidebar-collapsed .sidebar-logo img { height: 28px; }
+  .layout.sidebar-collapsed .menu-item > span:not(.badge):not(.arrow),
+  .layout.sidebar-collapsed .submenu-item > span:not(.badge):not(.arrow) { display: none; }
+  .layout.sidebar-collapsed .menu-item .arrow,
+  .layout.sidebar-collapsed .submenu-item .arrow { display: none; }
+  .layout.sidebar-collapsed .submenu { display: none; }
+  .layout.sidebar-collapsed .menu-item { justify-content: center; padding: 0; }
+  .layout.sidebar-collapsed .sidebar-toggle svg { transform: rotate(180deg); }
+
+  /* ========== 响应式 ========== */
+  @media (max-width: 1024px) {
+    .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+    .workspace-grid { grid-template-columns: 1fr; }
+    .info-row { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ========== 工作台 · 整合自 AI 跟进概要 ========== */
+  .time-filter {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border-base);
+    border-radius: 4px;
+    overflow: hidden;
+    width: fit-content;
+    margin-bottom: 16px;
+  }
+  .time-filter button {
+    background: #fff;
+    border: none;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--text-regular);
+    cursor: pointer;
+    border-right: 1px solid var(--border-base);
+  }
+  .time-filter button:last-child { border-right: none; }
+  .time-filter button:hover { background: var(--bg-base); }
+  .time-filter button.active { background: var(--primary); color: #fff; }
+
+  .card {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    border: 1px solid var(--border-extra-light);
+  }
+  .card-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-extra-light);
+    display: flex; align-items: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .card-header .actions {
+    margin-left: auto;
+    display: flex; gap: 8px; align-items: center;
+    font-size: 12px;
+    font-weight: normal;
+    color: var(--text-secondary);
+  }
+  .card-body { padding: 18px; }
+  .card-body.flush { padding: 0; }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .kpi-card.kpi-danger {
+    background: #fff;
+    border-radius: 6px;
+    padding: 18px 20px;
+    border: 1px solid var(--border-extra-light);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    overflow: hidden;
+    color: inherit;
+    text-decoration: none;
+    display: block;
+  }
+  .kpi-card.kpi-danger:hover,
+  .kpi-card.kpi-primary:hover,
+  .kpi-card.kpi-success:hover,
+  .kpi-card.kpi-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .kpi-card.kpi-primary,
+  .kpi-card.kpi-success,
+  .kpi-card.kpi-warning {
+    background: #fff;
+    border-radius: 6px;
+    padding: 18px 20px;
+    border: 1px solid var(--border-extra-light);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    overflow: hidden;
+    color: inherit;
+    text-decoration: none;
+    display: block;
+  }
+  .kpi-card.kpi-danger::after,
+  .kpi-card.kpi-primary::after,
+  .kpi-card.kpi-success::after,
+  .kpi-card.kpi-warning::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .kpi-card.kpi-danger::after { background: var(--danger); }
+  .kpi-card.kpi-primary::after { background: var(--primary); }
+  .kpi-card.kpi-success::after { background: var(--success); }
+  .kpi-card.kpi-warning::after { background: var(--warning); }
+  .kpi-card.kpi-danger { animation: kpi-pulse 2s infinite; }
+  @keyframes kpi-pulse {
+    0%, 100% { box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 0 rgba(245,108,108,0); }
+    50% { box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 4px rgba(245,108,108,0.08); }
+  }
+  .kpi-value {
+    margin-top: 8px;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-main);
+  }
+  .kpi-value.text-danger { color: var(--danger); }
+  .kpi-value.text-primary { color: var(--primary); }
+  .kpi-value.text-success { color: var(--success); }
+  .kpi-value.text-warning { color: var(--warning); }
+  .kpi-value.text-info { color: #7C4DFF; }
+  .kpi-foot .delta-up { color: var(--success); }
+  .kpi-foot .delta-down { color: var(--danger); }
+  .kpi-foot {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .kpi-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    line-height: 16px;
+    background: var(--bg-base);
+    color: var(--text-secondary);
+  }
+  .tag-danger { background: var(--danger-soft-bg); color: var(--danger); }
+  .tag-warning { background: var(--warning-soft-bg); color: var(--warning); }
+  .tag-primary { background: var(--primary-soft-bg); color: var(--primary); }
+  .tag-success { background: var(--success-soft-bg); color: var(--success); }
+
+  .link-btn { color: var(--primary); cursor: pointer; font-size: 12px; }
+  .link-btn:hover { text-decoration: underline; }
+
+  /* ========== v2 · 今日工作任务样式 ========== */
+  .today-task .card-header { padding: 14px 18px; }
+
+  .today-task-table { width: 100%; border-collapse: collapse; }
+  .today-task-table thead th {
+    background: #FAFBFC;
+    color: var(--text-secondary);
+    font-size: 12px; font-weight: 500;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-lighter);
+  }
+  .today-task-table tbody td {
+    padding: 12px 14px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border-lighter);
+    vertical-align: middle;
+  }
+  .today-task-table tbody tr { cursor: pointer; transition: background 0.15s; }
+  .today-task-table tbody tr:hover { background: #F5F8FC; }
+  .today-task-table tbody tr:last-child td { border-bottom: none; }
+  .today-task-table .row-p0 td:first-child { border-left: 3px solid var(--danger); }
+  .today-task-table .row-p1 td:first-child { border-left: 3px solid var(--warning); }
+  .today-task-table .row-p2 td:first-child { border-left: 3px solid var(--text-placeholder); }
+
+  .priority-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .priority-tag.p0 { background: rgba(245,108,108,0.12); color: var(--danger); }
+  .priority-tag.p1 { background: rgba(230,162,60,0.12); color: var(--warning); }
+  .priority-tag.p2 { background: rgba(144,147,153,0.12); color: var(--text-secondary); }
+
+  .task-customer { display: flex; align-items: center; gap: 10px; }
+  .task-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .task-name { font-weight: 600; color: var(--text-primary); font-size: 13px; }
+  .task-meta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  .today-task-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    padding: 18px;
+  }
+
+  /* v4 · 日历待办：销售自设定的下次跟进 */
+  .followup-list {
+    padding: 14px 18px 8px;
+    border-top: 1px solid var(--border-lighter);
+    border-left: 3px solid #E6A23C;
+    background: linear-gradient(90deg, rgba(230,162,60,0.06) 0%, rgba(230,162,60,0.02) 60%, transparent 100%);
+  }
+  .followup-list-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .followup-list-title {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600;
+    color: #E6A23C;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .followup-list-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .followup-list-items {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 6px;
+  }
+  .followup-item {
+    display: grid;
+    grid-template-columns: 96px 110px 1fr 70px;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    font-size: 13px;
+    border-bottom: 1px dashed var(--border-lighter);
+  }
+  .followup-item:last-child { border-bottom: none; }
+  .followup-time {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(230,162,60,0.10);
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-align: center;
+  }
+  .followup-customer {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .followup-goal {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+  .followup-status {
+    font-size: 11px;
+    text-align: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .followup-item.state-pending .followup-status {
+    background: rgba(245,108,108,0.12);
+    color: var(--danger);
+  }
+  .followup-item.state-scheduled .followup-status {
+    background: rgba(103,194,58,0.12);
+    color: var(--success);
+  }
+
+  /* v4 · 优先级建议：1 句话总结 */
+  .priority-summary {
+    padding: 14px 18px 16px;
+    border-top: 1px solid var(--border-lighter);
+    border-left: 3px solid #7C4DFF;
+    background: linear-gradient(90deg, rgba(124,77,255,0.06) 0%, rgba(124,77,255,0.02) 60%, transparent 100%);
+  }
+  .priority-summary-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #7C4DFF;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .priority-summary-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #7C4DFF;
+    box-shadow: 0 0 0 3px rgba(124,77,255,0.15);
+  }
+  .priority-summary-text {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-weight: 500;
+  }
+  .priority-summary-text strong {
+    color: #7C4DFF;
+    font-weight: 700;
+  }
+
+  /* v4 · KPI 5 卡网格 */
+  .kpi-row.kpi-row-5 {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .kpi-scope-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin: -8px 0 8px;
+    padding-left: 2px;
+  }
+  @media (max-width: 768px) {
+    .kpi-row.kpi-row-5 { grid-template-columns: repeat(2, 1fr); }
+  }
+  .next-actions {
+    display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .btn-action {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .btn-action:hover { background: #2B7FCF; transform: translateY(-1px); }
+  .btn-action:nth-child(2) {
+    background: #fff;
+    color: var(--primary);
+  }
+  .btn-action:nth-child(2):hover { background: rgba(65,158,254,0.06); }
+
+  /* 响应式 */
+  @media (max-width: 768px) {
+    .today-task-grid { grid-template-columns: 1fr; gap: 10px; }
+    .today-task-table thead { display: none; }
+    .today-task-table tbody tr { display: block; padding: 10px 0; border-bottom: 1px solid var(--border-lighter); }
+    .today-task-table tbody td { display: flex; justify-content: space-between; padding: 4px 14px; border: none; }
+    .today-task-table tbody td:first-child::before { content: '优先级'; }
+    .today-task-table tbody td:nth-child(2)::before { content: '客户'; }
+    .today-task-table tbody td:nth-child(3)::before { content: '动作'; }
+    .today-task-table tbody td:nth-child(4)::before { content: '目标'; }
+    .today-task-table tbody td:nth-child(5)::before { content: '状态'; }
+    .today-task-table tbody td:nth-child(6)::before { content: '操作'; }
+    .today-task-table tbody td::before { font-size: 11px; color: var(--text-secondary); margin-right: 8px; }
+  }
+
+  /* Toast 提示 */
+  .toast-msg {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(50,50,50,0.92);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 22px;
+    font-size: 13px;
+    z-index: 9999;
+    animation: toastIn 0.3s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .toast-msg.success { background: rgba(103,194,58,0.95); }
+  .toast-msg.error { background: rgba(245,108,108,0.95); }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ========== 侧栏 ========== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="https://cdn.autocava.com.mx/_nuxt/asset/logo.v3.mLItLIXo.svg" alt="AutoCava" />
+    </div>
+    <button type="button" class="sidebar-toggle" id="sidebarToggle" title="收起/展开侧栏" aria-label="收起侧栏">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+
+    <div class="menu">
+      <!-- 金融订单 -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/></svg>
+        <span>金融订单</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 网站管理 -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
+        <span>网站管理</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 车型库 -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14l-1.5-5h-11z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M3 17v-4l3-5h12l3 5v4"/></svg>
+        <span>车型库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 线索库（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>线索库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <a href="WhatsApp-Agent-PC.html" class="menu-item active">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span>WhatsApp Agent</span>
+      </a>
+      
+
+      <!-- 用户管理 -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1c0-3 3-5 8-5s8 2 8 5v1"/></svg>
+        <span>用户管理</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 内容库 -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+        <span>内容库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- System Monitor -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>System Monitor</span>
+        <span class="arrow">▾</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========== 主区域 ========== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-crumb">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span>WhatsApp Agent</span>
+        <span class="sep">/</span>
+        <span class="current">工作台</span>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-meta">
+          <span class="status-dot"></span>
+          <span>ycloud · 在线</span>
+        </div>
+        <div class="avatar-circle" title="销售 · Maria">M</div>
+      </div>
+    </header>
+
+    <!-- ========== 4 模块 Tab 切换条 ========== -->
+    <nav class="wa-tabbar">
+      <a href="WhatsApp-Agent-PC.html" class="wa-tab active">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        <span>工作台</span>
+      </a>
+            <a href="统一客服收件箱-PC.html" class="wa-tab">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <span>统一客服收件箱</span>
+        <span class="t-badge danger">2</span>
+      </a>
+      <a href="跟进策略-Skill-PC.html" class="wa-tab">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>跟进策略 Skill</span>
+      </a>
+      <a href="知识库(cavi).html" class="wa-tab">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>AI 助手（同Cavi）</span>
+      </a>
+    </nav>
+
+    <div class="scroll">
+
+      <!-- ========== Hero ========== -->
+      <div class="hero hero-compact">
+        <h1>
+          <span class="wa-mark">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+          </span>
+          工作台 · 今日总览
+        </h1>
+      </div>
+
+      <!-- ========== 时间筛选 ========== -->
+      <div class="time-filter">
+        <button data-range="today">今天</button>
+        <button data-range="7d" class="active">最近 7 天</button>
+        <button data-range="30d">最近 30 天</button>
+        <button data-range="quarter">本季度</button>
+      </div>
+      <div class="kpi-scope-hint">选定时间内新增的线索，当前状态分布</div>
+
+      <!-- ========== 销售工作概要（5 卡） ========== -->
+      <div class="kpi-row kpi-row-5">
+        <a class="kpi-card kpi-success" href="统一客服收件箱-PC.html?tab=new" id="kpi-new">
+          <div class="kpi-label">
+            <span>新增线索</span>
+          </div>
+          <div class="kpi-value text-success" data-val>18</div>
+          <div class="kpi-foot">
+            <span class="delta-up" data-delta>↑ 3 较昨日</span>
+          </div>
+        </a>
+
+        <a class="kpi-card kpi-primary" href="收件箱-销售跟进中-PC.html" id="kpi-sales">
+          <div class="kpi-label">
+            <span>销售跟进</span>
+          </div>
+          <div class="kpi-value text-primary" data-val>32</div>
+          <div class="kpi-foot">
+            <span class="delta-up" data-delta>+ 5 较昨日</span>
+          </div>
+        </a>
+
+        <a class="kpi-card kpi-info" href="收件箱-AI跟进中-PC.html" id="kpi-ai">
+          <div class="kpi-label">
+            <span>AI 跟进</span>
+          </div>
+          <div class="kpi-value text-info" data-val>47</div>
+          <div class="kpi-foot">
+            <span class="delta-up" data-delta>+ 8 较昨日</span>
+          </div>
+        </a>
+
+        <a class="kpi-card kpi-danger" href="统一客服收件箱-PC.html?tab=handoff" id="kpi-handoff">
+          <div class="kpi-label">
+            <span>待销售接管</span>
+          </div>
+          <div class="kpi-value text-danger" data-val>10</div>
+          <div class="kpi-foot">
+            <span class="delta-down" data-delta>- 2 较昨日</span>
+          </div>
+        </a>
+
+        <a class="kpi-card kpi-warning" href="统一客服收件箱-PC.html?tab=timeout" id="kpi-timeout">
+          <div class="kpi-label">
+            <span>接管超时</span>
+          </div>
+          <div class="kpi-value text-warning" data-val>6</div>
+          <div class="kpi-foot">
+            <span class="delta-down" data-delta>↑ 2 较昨日</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- ========== 今日工作任务（NEW · v2 主区） ========== -->
+      <div class="card today-task" style="margin-bottom: 16px;">
+        <div class="card-header">
+          <span style="font-weight:700;font-size:16px;">今日工作任务</span>
+        </div>
+
+        <!-- 段 1：今日任务表格 -->
+        <div class="card-body flush">
+          <table class="today-task-table">
+            <thead>
+              <tr>
+                <th style="width:64px;">优先级</th>
+                <th>客户 / 事项</th>
+                <th>任务动作</th>
+                <th>目标</th>
+                <th style="width:96px;">状态</th>
+                <th style="width:80px;text-align:right;">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-p0" onclick="window.location.href='收件箱-待销售接管-PC.html#ana'">
+                <td><span class="priority-tag p0">P0</span></td>
+                <td>
+                  <div class="task-customer">
+                    <div class="task-avatar" style="background:var(--danger);">AL</div>
+                    <div>
+                      <div class="task-name">Ana Lopez Castillo</div>
+                      <div class="task-meta">Tiguan · SLA 即将超时</div>
+                    </div>
+                  </div>
+                </td>
+                <td>立即接管 · 转人工 SLA 即将超时</td>
+                <td>接管安抚 · 避免升级主管</td>
+                <td><span class="tag tag-danger">即将超时</span></td>
+                <td style="text-align:right;"><span class="link-btn">接管 →</span></td>
+              </tr>
+              <tr class="row-p0" onclick="window.location.href='收件箱-待销售接管-PC.html#fernanda'">
+                <td><span class="priority-tag p0">P0</span></td>
+                <td>
+                  <div class="task-customer">
+                    <div class="task-avatar" style="background:var(--danger);">FS</div>
+                    <div>
+                      <div class="task-name">Fernanda Soto Gil</div>
+                      <div class="task-meta">XPENG G6 · 预审 8/8 字段完成</div>
+                    </div>
+                  </div>
+                </td>
+                <td>认领跟进 · 客户催促回电</td>
+                <td>推进试驾邀约</td>
+                <td><span class="tag tag-danger">待接管</span></td>
+                <td style="text-align:right;"><span class="link-btn">认领 →</span></td>
+              </tr>
+              <tr class="row-p0" onclick="window.location.href='收件箱-待销售接管-PC.html#laura'">
+                <td><span class="priority-tag p0">P0</span></td>
+                <td>
+                  <div class="task-customer">
+                    <div class="task-avatar" style="background:var(--warning);">LM</div>
+                    <div>
+                      <div class="task-name">Laura Martinez Solis</div>
+                      <div class="task-meta">JAC E10X · 已超时 1h12min</div>
+                    </div>
+                  </div>
+                </td>
+                <td>认领安抚 · 或升级主管</td>
+                <td>挽回客户 · 避免战败</td>
+                <td><span class="tag tag-warning">已超时</span></td>
+                <td style="text-align:right;"><span class="link-btn">处理 →</span></td>
+              </tr>
+              <tr class="row-p0" onclick="window.location.href='线索详情-PC.html#precheck-timeline'">
+                <td><span class="priority-tag p0">P0</span></td>
+                <td>
+                  <div class="task-customer">
+                    <div class="task-avatar" style="background:var(--success);">SC</div>
+                    <div>
+                      <div class="task-name">Sofia Castillo Reyes</div>
+                      <div class="task-meta">XPENG G9 · 信审 approved · HSM 已读 2h 未回</div>
+                    </div>
+                  </div>
+                </td>
+                <td>主动回电 · 信审结果已出（HSM 已推送 · approved）</td>
+                <td>推进试驾/签约 · 二次提醒已触发</td>
+                <td><span class="tag" style="background:#fff7e6;color:#d48806;border:1px solid #ffd591;">待二次提醒</span></td>
+                <td style="text-align:right;"><span class="link-btn">回电 →</span></td>
+              </tr>
+              <tr class="row-p1" onclick="window.location.href='线索详情-PC.html#precheck-timeline'">
+                <td><span class="priority-tag p1">P1</span></td>
+                <td>
+                  <div class="task-customer">
+                    <div class="task-avatar" style="background:var(--danger);">RD</div>
+                    <div>
+                      <div class="task-name">Roberto Diaz Mendoza</div>
+                      <div class="task-meta">JAC E10X · 信审 more_info · 待补资料</div>
+                    </div>
+                  </div>
+                </td>
+                <td>沟通补件清单 · HSM 已推 more_info</td>
+                <td>推进补件 · 或转备选车型</td>
+                <td><span class="tag" style="background:#fff1f0;color:#d4380d;border:1px solid #ffccc7;">待跟进</span></td>
+                <td style="text-align:right;"><span class="link-btn">跟进 →</span></td>
+              </tr>
+</tbody>
+          </table>
+        </div>
+
+        <!-- 段 2：日历待办（销售自设定的下次跟进） -->
+        <div class="followup-list">
+          <div class="followup-list-header">
+            <span class="followup-list-title">日历待办 · 我设定的下次跟进</span>
+            <span class="followup-list-meta">3 条 · 1 条待联系 / 2 条已排程</span>
+          </div>
+          <ul class="followup-list-items">
+            <li class="followup-item state-pending">
+              <span class="followup-time">10:30</span>
+              <span class="followup-customer">Ana Lopez</span>
+              <span class="followup-goal">确认试驾时间 · Tiguan</span>
+              <span class="followup-status">待联系</span>
+            </li>
+            <li class="followup-item state-scheduled">
+              <span class="followup-time">明天 14:00</span>
+              <span class="followup-customer">Pedro Ramirez</span>
+              <span class="followup-goal">D+3 HSM 唤醒 · BYD</span>
+              <span class="followup-status">已排程</span>
+            </li>
+            <li class="followup-item state-scheduled">
+              <span class="followup-time">9/8 16:30</span>
+              <span class="followup-customer">Carlos Mendoza</span>
+              <span class="followup-goal">跟进预审补字段 · JAC E10X</span>
+              <span class="followup-status">已排程</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- 段 3：今日优先级建议（1 句话） -->
+        <div class="priority-summary">
+          <div class="priority-summary-tag">
+            <span class="priority-summary-dot"></span>
+            <span>AI 优先级建议</span>
+          </div>
+          <div class="priority-summary-text">
+            立即处理 <strong>Ana Lopez · Tiguan</strong>（SLA 即将超时），然后回电 <strong>Sofia Castillo · XPENG G9</strong>（信审通过 · 已读未回），避免 3 个 P0 升级为超时或客户流失。
+          </div>
+        </div>
+
+        <!-- 段 3：下一步动作（2 个快捷按钮） -->
+        <div class="card-body" style="border-top:1px dashed var(--border-lighter);padding-top:14px;">
+          <div class="next-actions">
+            <a class="btn-action" href="统一客服收件箱-PC.html#fernanda" onclick="event.stopPropagation();">
+              去接管客户
+            </a>
+            <a class="btn-action" href="收件箱-待销售接管-PC.html" onclick="event.stopPropagation();">
+              查看超时客户
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var KEY = 'autocava_admin_sidebar_collapsed';
+  var layout = document.querySelector('.layout');
+  var btn = document.getElementById('sidebarToggle');
+  if (!layout || !btn) return;
+  function apply(collapsed) {
+    layout.classList.toggle('sidebar-collapsed', !!collapsed);
+    btn.title = collapsed ? '展开侧栏' : '收起侧栏';
+    btn.setAttribute('aria-label', btn.title);
+    try { localStorage.setItem(KEY, collapsed ? '1' : '0'); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  apply(saved === null ? false : saved === '1');
+  btn.addEventListener('click', function () {
+    apply(!layout.classList.contains('sidebar-collapsed'));
+  });
+})();
+
+// ========== KPI 时间筛选联动（v4 · 5 卡全部跟随） ==========
+(function () {
+  // 4 个时间段下，5 个 KPI 的值（X 时间内新增的线索当前状态分布）
+  var KPI_DATA = {
+    'today':    { new: 4,  sales: 12, ai: 18, handoff: 3, timeout: 2,  hint: '今天新增的线索，当前状态分布' },
+    '7d':       { new: 18, sales: 32, ai: 47, handoff: 10, timeout: 6, hint: '最近 7 天新增的线索，当前状态分布' },
+    '30d':      { new: 76, sales: 86, ai: 124, handoff: 23, timeout: 14, hint: '最近 30 天新增的线索，当前状态分布' },
+    'quarter':  { new: 312, sales: 198, ai: 287, handoff: 47, timeout: 31, hint: '本季度新增的线索，当前状态分布' }
+  };
+
+  // delta 文本（简单 mock：随数量同比变化）
+  function deltaText(key, range) {
+    var d = KPI_DATA[range][key];
+    var prev = Math.round(d * 0.86);  // mock 假设上一周期为当前的 86%
+    var diff = d - prev;
+    var sign = diff >= 0 ? '↑' : '↓';
+    var cls = diff >= 0 ? 'delta-up' : 'delta-down';
+    return { text: sign + ' ' + Math.abs(diff) + ' 较上一周期', cls: cls };
+  }
+
+  function applyRange(range) {
+    var data = KPI_DATA[range];
+    if (!data) return;
+    document.getElementById('kpi-new').querySelector('[data-val]').textContent = data.new;
+    document.getElementById('kpi-sales').querySelector('[data-val]').textContent = data.sales;
+    document.getElementById('kpi-ai').querySelector('[data-val]').textContent = data.ai;
+    document.getElementById('kpi-handoff').querySelector('[data-val]').textContent = data.handoff;
+    document.getElementById('kpi-timeout').querySelector('[data-val]').textContent = data.timeout;
+
+    ['new', 'sales', 'ai', 'handoff', 'timeout'].forEach(function (key) {
+      var card = document.getElementById('kpi-' + (key === 'new' ? 'new' : key));
+      var dEl = card.querySelector('[data-delta]');
+      var d = deltaText(key, range);
+      dEl.textContent = d.text;
+      dEl.className = d.cls;
+    });
+
+    var hint = document.querySelector('.kpi-scope-hint');
+    if (hint) hint.textContent = data.hint;
+  }
+
+  var buttons = document.querySelectorAll('.time-filter button[data-range]');
+  buttons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      buttons.forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      applyRange(btn.getAttribute('data-range'));
+    });
+  });
+})();
+</script>
+
+
+<!-- Toast 提示（v3 · 今日任务快捷按钮反馈） -->
+<script>
+function toast(msg, type) {
+  type = type || 'info';
+  var el = document.createElement('div');
+  el.className = 'toast-msg ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(function () { el.remove(); }, 2200);
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,2784 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>AI 跟进中 · 统一客服收件箱</title>
+<style>
+  /* ============================================================
+     04-admin · 统一客服收件箱（PC）
+     规范：visual-specs/04-admin (Element UI 风)
+     来源：CAVi AI Sales Agent 规划 v0.4 §5.1 + §5.2
+     说明：本文件用于 Figma html-to-design 插件还原
+     - 单文件 Vanilla HTML + CSS
+     - 不写后端；前端场景切换
+     - 布局：侧栏 200px + 会话列表 320px + 主消息流 1fr + 客户档案 300px
+     - 唯一外链：AUTOCAVA 官方 Logo CDN
+     ============================================================ */
+
+  :root {
+    --sidebar-bg: #232B2F;
+    --sidebar-logo-bg: #2B2F3A;
+    --sidebar-hover: #2C333D;
+    --submenu-bg: #1E2529;
+    --submenu-active-bg: #2C333D;
+    --sidebar-active-bg: #1F8FE9;
+    --sidebar-text: #BFC9D4;
+    --sidebar-text-active: #FFFFFF;
+
+    --bg-main: #fff;
+    --header-bg: #fff;
+    --header-border: #EBEEF5;
+    --row-hover: #FAFAFC;
+    --bg-soft: #F5F7FA;
+
+    --primary: #419EFE;
+    --primary-soft-bg: #E8F4FE;
+    --primary-soft-bg-hover: #D9ECFD;
+    --success: #67C23A;
+    --success-soft-bg: #E1F3D8;
+    --warning: #E6A23C;
+    --warning-soft-bg: #FAECD8;
+    --purple: #7C4DFF;
+    --purple-soft-bg: #EDE7FF;
+    --danger: #F56C6C;
+    --info: #909399;
+
+    --border: #DCDFE6;
+    --border-light: #F0F2F5;
+
+    --text-main: #303133;
+    --text-regular: #606266;
+    --text-secondary: #909399;
+    --text-placeholder: #C0C4CC;
+
+    --sidebar-width: 176px;
+    --conv-list-width: 280px;
+    --profile-width: 380px;
+    --logo-height: 56px;
+    --header-height: 55px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+                 "Helvetica Neue", "Hiragino Sans GB", "Microsoft YaHei",
+                 "微软雅黑", "Source Han Sans CN", "Noto Sans CJK SC",
+                 Arial, sans-serif;
+    font-size: 13px;
+    color: var(--text-main);
+    background: var(--bg-soft);
+    min-width: 1280px;
+  }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ========== 整体布局（2 列：侧栏 + 主区域） ========== */
+  .layout {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    min-height: 100vh;
+  }
+
+  /* 主区域：内含顶部 Tab + 3 列内容 */
+  .main-area {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* ========== 顶部面包屑 topbar（与「工作台 / 跟进策略-Skill / 知识库(cavi) / 统一客服收件箱」统一）========== */
+  .topbar {
+    height: 56px;
+    background: #fff;
+    border-bottom: 1px solid var(--border-soft);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .topbar-crumb {
+    font-size: 13px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .topbar-crumb svg { color: var(--primary); }
+  .topbar-crumb .sep { color: var(--text-placeholder); margin: 0 2px; }
+  .topbar-crumb .current { color: var(--text-main); font-weight: 500; }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .topbar-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .topbar-meta .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.15);
+  }
+  .avatar-circle {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* 3 列内容（会话列表 + 主消息流 + 客户档案） */
+  .main-cols {
+    display: grid;
+    grid-template-columns: var(--conv-list-width) 1fr var(--profile-width);
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* ========== 顶级 Tab 导航（仅覆盖主区域，不覆盖侧栏） ========== */
+  .top-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 1px;
+    background: #F0F2F5;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .top-tab {
+    height: 60px;
+    padding: 0 14px;
+    background: #fff;
+    color: var(--text-regular);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px;
+    transition: background 0.15s;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+  }
+  .top-tab:hover { text-decoration: none; }
+  .top-tab:hover { background: var(--row-hover); }
+  .top-tab-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .top-tab-row {
+    display: flex; align-items: baseline; gap: 8px;
+    line-height: 1.1;
+  }
+  .top-tab-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+  }
+  .top-tab-count {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text-secondary);
+  }
+  .top-tab-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  /* 主题色——每个 tab 自己的颜色 */
+  .top-tab[data-stage="ai"] .top-tab-count { color: var(--primary); }
+  .top-tab[data-stage="handoff"] .top-tab-count { color: var(--danger); }
+  .top-tab[data-stage="sales"] .top-tab-count { color: var(--success); }
+
+  /* 激活态：整块填充主题色 + 反白 */
+  .top-tab.active { color: #fff; }
+  .top-tab.active .top-tab-label,
+  .top-tab.active .top-tab-count,
+  .top-tab.active .top-tab-hint { color: #fff; }
+  .top-tab.active .top-tab-count { font-size: 22px; }
+  .top-tab[data-stage="all"].active { background: #303133; }
+  .top-tab[data-stage="ai"].active { background: var(--primary); }
+  .top-tab[data-stage="handoff"].active { background: var(--danger); animation: pulse-handoff-tab 2s infinite; }
+  .top-tab[data-stage="sales"].active { background: var(--success); }
+
+  /* tab 右侧小箭头（指向对应内容） */
+  .top-tab-arrow {
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .top-tab.active .top-tab-arrow { opacity: 1; }
+  .top-tab[data-stage="all"].active .top-tab-arrow { border-bottom-color: #303133; }
+  .top-tab[data-stage="ai"].active .top-tab-arrow { border-bottom-color: var(--primary); }
+  .top-tab[data-stage="handoff"].active .top-tab-arrow { border-bottom-color: var(--danger); }
+  .top-tab[data-stage="sales"].active .top-tab-arrow { border-bottom-color: var(--success); }
+
+  /* 红点（待销售接管未激活态的红点提示） */
+  .top-tab-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
+    box-shadow: 0 0 0 3px rgba(245, 108, 108, 0.25);
+    animation: pulse-tab-dot 1.5s infinite;
+    flex-shrink: 0;
+    margin-left: -6px;
+  }
+  @keyframes pulse-tab-dot {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(245, 108, 108, 0.25); }
+    50% { box-shadow: 0 0 0 6px rgba(245, 108, 108, 0.12); }
+  }
+  @keyframes pulse-handoff-tab {
+    0%, 100% { box-shadow: inset 0 0 0 0 rgba(245, 108, 108, 0); }
+    50% { box-shadow: inset 0 0 0 4px rgba(245, 108, 108, 0.55); }
+  }
+
+  /* ========== 侧栏（与线索详情 PC 一致） ========== */
+  .sidebar {
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-logo {
+    height: var(--logo-height);
+    background: #353946;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+  }
+  .sidebar-logo img { height: 36px; width: auto; display: block; }
+
+  /* ========== 收件箱统计看板（侧栏顶部） ========== */
+  .dashboard {
+    background: var(--sidebar-logo-bg);
+    padding: 12px 12px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+  .dashboard-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8A93A6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .dash-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 4px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .dash-card:hover {
+    background: rgba(255,255,255,0.08);
+  }
+  .dash-card-icon {
+    font-size: 14px;
+    margin-bottom: 4px;
+    opacity: 0.9;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .dash-card-icon svg {
+    display: block;
+  }
+  .dash-card.danger .dash-card-icon { color: #FF8A8A; }
+  .dash-card.primary .dash-card-icon { color: #5BACFF; }
+  .dash-card.success .dash-card-icon { color: #67C23A; }
+  .dash-card.warning .dash-card-icon { color: #E6A23C; }
+  .dash-card-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+  }
+  .dash-card-label {
+    font-size: 10px;
+    color: #8A93A6;
+    margin-top: 2px;
+  }
+  /* 红色高亮卡片（待销售接管） */
+  .dash-card.danger {
+    background: linear-gradient(135deg, rgba(245, 108, 108, 0.18) 0%, rgba(245, 108, 108, 0.08) 100%);
+    border-color: rgba(245, 108, 108, 0.35);
+    animation: pulse-dash 2s infinite;
+  }
+  .dash-card.danger .dash-card-value {
+    color: #FF8A8A;
+  }
+  @keyframes pulse-dash {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 108, 108, 0); }
+    50% { box-shadow: 0 0 0 4px rgba(245, 108, 108, 0.1); }
+  }
+  /* 橙色卡片（已超时） */
+  .dash-card.warning .dash-card-value {
+    color: #E6A23C;
+  }
+  /* 蓝色卡片（AI 接管） */
+  .dash-card.primary .dash-card-value {
+    color: #5BACFF;
+  }
+  /* 绿色卡片（销售接管中） */
+  .dash-card.success .dash-card-value {
+    color: #67C23A;
+  }
+  /* 看板下方的洞察文字 */
+  .dashboard-insight {
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: rgba(65, 158, 254, 0.08);
+    border-left: 2px solid #419EFE;
+    border-radius: 2px;
+    font-size: 10px;
+    line-height: 1.5;
+    color: #B8BFCC;
+  }
+  .dashboard-insight strong {
+    color: #5BACFF;
+    font-weight: 600;
+  }
+
+  .menu { padding: 6px 0; flex: 1; overflow-y: auto; }
+  .menu-item {
+    height: 42px;
+    display: flex; align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    color: #CFD3DC;
+    font-size: 13px;
+    cursor: pointer;
+    position: relative;
+  }
+  .menu-item:hover { color: #fff; }
+  .menu-item .icon {
+    width: 16px; height: 16px;
+    opacity: 0.85;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .menu-item .arrow {
+    margin-left: auto;
+    font-size: 10px;
+    opacity: 0.7;
+  }
+  .submenu { background: var(--submenu-bg); }
+  .submenu-item {
+    height: 38px;
+    display: flex; align-items: center;
+    padding: 0 16px 0 44px;
+    gap: 8px;
+    color: #B8BFCC;
+    font-size: 13px;
+    cursor: pointer;
+    position: relative;
+  }
+  .submenu-item:hover { color: #fff; }
+  .submenu-item .icon { width: 14px; height: 14px; opacity: 0.7; flex-shrink: 0; }
+  .submenu-item.active {
+    color: #fff;
+    background: rgba(65, 158, 254, 0.2);
+  }
+  .submenu-item.active::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--primary);
+  }
+
+  /* ========== 会话列表 ========== */
+  .conv-list {
+    background: #fff;
+    border-right: 1px solid var(--header-border);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .conv-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--header-border);
+  }
+  .conv-search input {
+    width: 100%;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-size: 13px;
+    color: var(--text-main);
+    background: var(--bg-soft);
+  }
+  .conv-search input::placeholder { color: var(--text-placeholder); }
+
+  /* ========== 工作流 Tab（已升级到顶级导航 .top-tabs，旧样式保留兼容） ========== */
+  .conv-tabs { display: none; }
+  /* Tab 红点（待处理优先级标识） */
+  .tab-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+    flex-shrink: 0;
+  }
+  .tab-dot-red {
+    background: var(--danger);
+    box-shadow: 0 0 0 3px rgba(245, 108, 108, 0.2);
+    animation: pulse-tab-dot 1.5s infinite;
+  }
+  @keyframes pulse-tab-dot {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(245, 108, 108, 0.2); }
+    50% { box-shadow: 0 0 0 6px rgba(245, 108, 108, 0.1); }
+  }
+
+  /* 会话项优先级修饰类 —— 用 border-left 而非 ::after 伪元素（更可靠） */
+  .conv-item.handoff {
+    background: linear-gradient(90deg, rgba(245, 108, 108, 0.12) 0%, rgba(245, 108, 108, 0.04) 50%, rgba(245, 108, 108, 0) 100%) !important;
+    border-left: 4px solid #F56C6C !important;
+    padding-left: 12px !important;
+  }
+  /* 转人工专用标签（醒目样式） */
+  .conv-tag-handoff {
+    background: #F56C6C !important;
+    color: #fff !important;
+    font-weight: 600 !important;
+    animation: pulse-handoff 2s infinite;
+  }
+  @keyframes pulse-handoff {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+  }
+  /* 会话项顶置（待处理置顶视觉） */
+  .conv-item.priority {
+    order: -1;
+  }
+  /* handoff 激活状态：保留红色背景（不被蓝色 active 覆盖） */
+  .conv-item.handoff.active {
+    background: linear-gradient(90deg, rgba(245, 108, 108, 0.18) 0%, rgba(245, 108, 108, 0.08) 50%, rgba(245, 108, 108, 0) 100%) !important;
+  }
+
+  /* ========== 工作流阶段标签（4 类标准色） ========== */
+  /* AI 跟单中：蓝色 */
+  .conv-tag-stage-ai {
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+    font-weight: 600;
+  }
+  /* 待销售接管：红色 */
+  .conv-tag-stage-handoff {
+    background: var(--danger);
+    color: #fff;
+    font-weight: 600;
+  }
+  /* 销售跟进中：绿色 */
+  .conv-tag-stage-sales {
+    background: var(--success-soft-bg);
+    color: var(--success);
+    font-weight: 600;
+  }
+  /* 已成交：灰色 */
+  .conv-tag-stage-done {
+    background: var(--bg-soft);
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  /* ========== AI 任务阶段标签（4 个阶段，对齐 SOP 2026） ========== */
+  /* ①T0 首触：蓝色（HSM 首联 / 兜底问候）*/
+  .conv-tag-task-first {
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+  }
+  /* ②需求确认 / D+1 轻提醒：黄色（待激活 / D+1 唤醒）*/
+  .conv-tag-task-incubate {
+    background: var(--warning-soft-bg);
+    color: var(--warning);
+  }
+  /* ④MStar 意向确认：紫色（材料收集 / 预审入口）*/
+  .conv-tag-task-collect {
+    background: var(--purple-soft-bg);
+    color: var(--purple);
+    font-weight: 600;
+  }
+  /* 4·预审通过：绿色（完成感）*/
+  .conv-tag-task-approved {
+    background: var(--success-soft-bg);
+    color: var(--success);
+    font-weight: 600;
+  }
+  /* 战败场景：灰色 + 弱化（明确不匹配/拒绝/长期无回复）*/
+  .conv-tag-task-lost {
+    background: #F2F3F5;
+    color: #909399;
+    text-decoration: line-through;
+    text-decoration-color: rgba(144, 147, 153, 0.5);
+  }
+  .conv-tag-lost {
+    background: var(--danger);
+    color: #fff;
+    font-weight: 600;
+  }
+  .conv-tag-inactive {
+    background: var(--warning);
+    color: #fff;
+    font-weight: 600;
+  }
+  .conv-tag-deferred {
+    background: #FFF7E6;
+    color: #D48806;
+    font-weight: 600;
+    border: 1px solid #FFD591;
+  }
+
+  /* ========== AI 任务进度标签（主路径对齐 SOP 2026 ①–④；转人工为特殊出口） ========== */
+  /* ②需求确认 / D+1 轻提醒：蓝色 */
+  .conv-tag-ai-collect {
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+    border: 1px solid #B6DDFB;
+  }
+  /* ② 意向识别：黄色（AI 在判断用户意向）*/
+  .conv-tag-ai-identify {
+    background: var(--warning-soft-bg);
+    color: var(--warning);
+    border: 1px solid #F5D491;
+  }
+  /* ③ 预审收集：紫色（AI 在收材料）*/
+  .conv-tag-ai-precheck {
+    background: var(--purple-soft-bg);
+    color: var(--purple);
+    border: 1px solid #C5B0FF;
+  }
+  /* （旧④转人工标签保留兼容，进度条内不再作为主步骤）*/
+  .conv-tag-ai-handoff {
+    background: var(--success-soft-bg);
+    color: var(--success);
+    border: 1px solid #B0E095;
+  }
+  .conv-item.is-lost {
+    background: #FAFAFC;
+    opacity: 0.78;
+  }
+  .conv-item.is-lost:hover {
+    opacity: 1;
+  }
+  .conv-item.is-lost .conv-name {
+    color: var(--text-secondary);
+    text-decoration: line-through;
+    text-decoration-color: rgba(96, 98, 102, 0.4);
+  }
+  .conv-avatar.is-lost {
+    background: #F2F3F5;
+    color: #909399;
+    filter: grayscale(0.6);
+  }
+  .conv-section-divider {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: #F8F8FA;
+    border-top: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .conv-section-divider svg { color: var(--warning); }
+  .conv-section-count {
+    margin-left: auto;
+    background: var(--warning);
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* 会话条目 */
+  .conv-items { flex: 1; overflow-y: auto; }
+  .conv-item {
+    display: flex;
+    padding: 10px 12px;
+    gap: 8px;
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    position: relative;
+  }
+  .conv-item:hover { background: var(--row-hover); }
+  .conv-item.active { background: var(--primary-soft-bg); }
+  .conv-item.active::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--primary);
+  }
+  .conv-avatar {
+    width: 36px; height: 36px;
+    border-radius: 4px;
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .conv-body { flex: 1; min-width: 0; }
+  .conv-row1 {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .conv-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .conv-time {
+    font-size: 12px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+  .conv-row2 {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .conv-preview {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .conv-badge {
+    background: var(--danger);
+    color: #fff;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    line-height: 1.4;
+    flex-shrink: 0;
+  }
+  .conv-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .conv-tag {
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 9px;
+    font-size: 11px;
+    line-height: 1.6;
+    display: inline-flex; align-items: center;
+  }
+  .conv-tag-ai { background: var(--primary-soft-bg); color: var(--primary); }
+  .conv-tag-high { background: var(--success-soft-bg); color: var(--success); }
+  .conv-tag-low { background: var(--bg-soft); color: var(--text-secondary); }
+
+  /* ========== 主消息区 ========== */
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    min-width: 0;
+  }
+  .chat-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--header-border);
+    gap: 12px;
+  }
+  .chat-header-info { flex: 1; }
+  .chat-header-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 4px;
+  }
+  .chat-header-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .chat-header-subhint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .chat-header-subhint svg { flex-shrink: 0; color: var(--primary); }
+  .window-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .window-open {
+    background: var(--success-soft-bg);
+    color: var(--success);
+  }
+  .window-open::before {
+    content: "";
+    width: 6px; height: 6px;
+    background: var(--success);
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .window-closed {
+    background: var(--warning-soft-bg);
+    color: var(--warning);
+  }
+  .window-closed::before {
+    content: "";
+    width: 6px; height: 6px;
+    background: var(--warning);
+    border-radius: 50%;
+    display: inline-block;
+  }
+  /* 转人工 SLA 倒计时（醒目红色） */
+  .handoff-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--danger);
+    color: #fff;
+    animation: pulse-handoff 2s infinite;
+  }
+  .chat-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .btn {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 3px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-regular);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn:hover { color: var(--primary); border-color: var(--primary); }
+  .btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .btn-primary:hover { opacity: 0.88; color: #fff; }
+  .btn-success {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+  }
+  .btn-success:hover { opacity: 0.88; color: #fff; }
+  .btn-secondary {
+    background: #fff;
+    border-color: var(--border);
+    color: var(--text-regular);
+  }
+  .btn-icon-only {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .btn-icon-only:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  /* AI 接管 / 销售接管 切换 */
+  .mode-switch {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .mode-switch button {
+    height: 30px;
+    padding: 0 12px;
+    background: #fff;
+    border: none;
+    font-size: 12px;
+    color: var(--text-regular);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .mode-switch button.active {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  /* 消息流 */
+  .chat-stream {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: var(--bg-soft);
+  }
+  .chat-day-divider {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-placeholder);
+    margin: 12px 0;
+    position: relative;
+  }
+  .chat-day-divider::before,
+  .chat-day-divider::after {
+    content: "";
+    display: inline-block;
+    width: 80px;
+    height: 1px;
+    background: var(--border-light);
+    vertical-align: middle;
+    margin: 0 8px;
+  }
+
+  .msg-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    max-width: 70%;
+  }
+  .msg-row.outbound {
+    margin-left: auto;
+    flex-direction: row-reverse;
+  }
+  .msg-avatar {
+    width: 32px; height: 32px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .msg-avatar.customer {
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+  }
+  .msg-avatar.ai {
+    background: #FFC422;
+    border: none;
+    padding: 0;
+    overflow: hidden;
+  }
+  .msg-avatar.ai img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 4px;
+  }
+  .msg-avatar.sales {
+    background: var(--success);
+    color: #fff;
+  }
+  .msg-body { min-width: 0; }
+  .msg-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  .msg-sender { font-weight: 600; color: var(--text-main); }
+  .msg-tag {
+    height: 16px;
+    padding: 0 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    line-height: 1.6;
+    display: inline-flex; align-items: center;
+  }
+  .msg-tag-ai { background: var(--primary-soft-bg); color: var(--primary); }
+  .msg-tag-sales { background: var(--success-soft-bg); color: var(--success); }
+  .msg-tag-system { background: var(--bg-soft); color: var(--text-secondary); }
+  .msg-bubble {
+    background: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-main);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg-row.outbound .msg-bubble {
+    background: var(--primary-soft-bg);
+    border-color: #B6DDFB;
+  }
+  .msg-row.outbound.ai .msg-bubble {
+    background: #fff;
+    border-color: var(--primary);
+  }
+  .msg-row.outbound.sales .msg-bubble {
+    background: #F0F9EB;
+    border-color: #C2E7B0;
+  }
+  .msg-status {
+    font-size: 11px;
+    color: var(--text-placeholder);
+    margin-top: 4px;
+    text-align: right;
+  }
+
+  /* AI 提示条（系统消息样式）*/
+  .msg-row.system .msg-bubble {
+    background: #FFF7E6;
+    border-color: #FFE7BA;
+    color: var(--warning);
+    font-style: italic;
+    text-align: center;
+  }
+
+  /* 输入区 */
+  .chat-input {
+    border-top: 1px solid var(--header-border);
+    padding: 12px 20px;
+    background: #fff;
+  }
+  .input-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .tool-btn {
+    width: 28px; height: 28px;
+    border-radius: 3px;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .tool-btn:hover { background: var(--bg-soft); color: var(--primary); }
+  .input-textarea {
+    width: 100%;
+    min-height: 60px;
+    border: none;
+    outline: none;
+    resize: none;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text-main);
+  }
+  .input-textarea::placeholder { color: var(--text-placeholder); }
+  .input-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+  .input-hint {
+    font-size: 11px;
+    color: var(--text-placeholder);
+  }
+  .input-btns { display: flex; gap: 8px; }
+
+  /* ========== 客户档案 ========== */
+  .profile {
+    background: #fff;
+    border-left: 1px solid var(--header-border);
+    overflow-y: auto;
+    padding: 0;
+  }
+  .profile-header {
+    padding: 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--header-border);
+  }
+  .profile-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 auto 12px;
+  }
+  .profile-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 4px;
+    word-break: break-word;
+    padding: 0 8px;
+  }
+  .profile-phone {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .profile-section {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--header-border);
+  }
+  .profile-section:last-child { border-bottom: none; }
+  .profile-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  .profile-field {
+    display: flex;
+    font-size: 13px;
+    line-height: 24px;
+  }
+  .profile-field-label {
+    width: 76px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+  }
+  .profile-field-value {
+    color: var(--text-main);
+    flex: 1;
+    min-width: 0;
+  }
+  .profile-field-value.link { color: var(--primary); }
+
+  /* ========== 预审信息收集进度 ========== */
+  .precheck-progress {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 8px 10px;
+    background: var(--primary-soft-bg);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-regular);
+  }
+  .precheck-progress strong { color: var(--primary); font-weight: 600; }
+  .precheck-group-title {
+    font-size: 11px;
+    color: var(--text-placeholder);
+    margin: 10px 0 4px;
+    font-weight: 600;
+  }
+  .precheck-status-done { color: var(--success); font-size: 12px; font-weight: 500; }
+  .precheck-status-miss { color: var(--danger); font-size: 12px; }
+  .precheck-status-sys { color: var(--text-secondary); font-size: 12px; }
+  .precheck-hint {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text-placeholder);
+    line-height: 1.5;
+  }
+
+  /* ========== 信审进度时间线（与线索详情页一致 · 蓝/绿/红/黄） ========== */
+  .precheck-timeline {
+    position: relative;
+    padding-left: 18px;
+    margin: 0;
+  }
+  .precheck-timeline::before {
+    content: '';
+    position: absolute;
+    left: 5px; top: 4px; bottom: 4px;
+    width: 1px;
+    background: var(--border-light);
+  }
+  .precheck-node {
+    position: relative;
+    padding: 0 0 10px 0;
+    list-style: none;
+  }
+  .precheck-node:last-child { padding-bottom: 0; }
+  .precheck-node-dot {
+    position: absolute;
+    left: -18px; top: 2px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--border);
+    background: var(--primary);
+  }
+  .precheck-node-dot.blue   { background: var(--primary);   box-shadow: 0 0 0 1px var(--primary); }
+  .precheck-node-dot.green  { background: var(--success);   box-shadow: 0 0 0 1px var(--success); }
+  .precheck-node-dot.red    { background: var(--danger);    box-shadow: 0 0 0 1px var(--danger); }
+  .precheck-node-dot.yellow { background: var(--warning);   box-shadow: 0 0 0 1px var(--warning); }
+  .precheck-node-dot.gray   { background: var(--info);      box-shadow: 0 0 0 1px var(--info); }
+  .precheck-node-time {
+    font-size: 10px;
+    color: var(--text-placeholder);
+    line-height: 1.3;
+    margin-bottom: 2px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .precheck-node-label {
+    font-size: 11px;
+    color: var(--text-main);
+    line-height: 1.5;
+  }
+  .precheck-node-tag {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    margin-right: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .precheck-node-tag.blue   { background: var(--primary-soft-bg); color: var(--primary); }
+  .precheck-node-tag.green  { background: var(--success-soft-bg); color: var(--success); }
+  .precheck-node-tag.red    { background: var(--danger-soft-bg);  color: var(--danger); }
+  .precheck-node-tag.yellow { background: var(--warning-soft-bg); color: var(--warning); }
+  .precheck-node-tag.gray   { background: #F2F3F5;                color: var(--info); }
+
+  /* HSM 消息气泡（对话流内）*/
+  .msg-hsm-id {
+    display: inline-block;
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+    padding: 0 5px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 600;
+    margin-right: 4px;
+    font-family: ui-monospace, monospace;
+  }
+  .profile-tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .profile-tag {
+    height: 22px;
+    padding: 0 10px;
+    border-radius: 11px;
+    font-size: 12px;
+    line-height: 1.7;
+    display: inline-flex;
+    align-items: center;
+  }
+  .ai-summary {
+    background: var(--primary-soft-bg);
+    border: 1px solid #B6DDFB;
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-regular);
+  }
+  .ai-summary-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ========== AI 任务进度 stepper ========== */
+  .ai-task-stepper {
+    position: relative;
+    padding-left: 8px;
+  }
+  .task-step {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 6px 0;
+  }
+  .task-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 9px;
+    top: 22px;
+    bottom: -4px;
+    width: 2px;
+    background: var(--border-light);
+  }
+  .task-step.done:not(:last-child)::after { background: var(--success); }
+  .task-step-dot {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--bg-soft);
+    border: 2px solid var(--border-light);
+    margin-top: 2px;
+    position: relative;
+    z-index: 1;
+  }
+  .task-step.done .task-step-dot {
+    background: var(--success);
+    border-color: var(--success);
+  }
+  .task-step.done .task-step-dot::after {
+    content: '✓';
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    line-height: 1;
+  }
+  .task-step.active .task-step-dot {
+    background: var(--purple);
+    border-color: var(--purple);
+    box-shadow: 0 0 0 4px rgba(124, 77, 255, 0.15);
+  }
+  .task-step.active .task-step-dot::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .task-step.pending .task-step-dot {
+    background: var(--bg-soft);
+    border-color: var(--border);
+  }
+  .task-step-body { flex: 1; min-width: 0; }
+  .task-step-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.4;
+  }
+  .task-step.active .task-step-name { color: var(--purple); }
+  .task-step.pending .task-step-name { color: var(--text-secondary); font-weight: 500; }
+  .task-step-time {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+  .task-step.active .task-step-time { color: var(--purple); font-weight: 500; }
+
+
+  /* 转人工：特殊出口（非主路径第 N 步） */
+  .task-handoff {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px dashed var(--border);
+    background: var(--bg-soft);
+  }
+  .task-handoff-kicker {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  .task-handoff-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .task-handoff-time {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+  .task-handoff.idle .task-handoff-title { color: var(--text-secondary); font-weight: 500; }
+  .task-handoff.active {
+    border-style: solid;
+    border-color: var(--danger);
+    background: #FEF0F0;
+  }
+  .task-handoff.active .task-handoff-kicker,
+  .task-handoff.active .task-handoff-title,
+  .task-handoff.active .task-handoff-time { color: var(--danger); }
+  .task-handoff.done {
+    border-style: solid;
+    border-color: var(--success);
+    background: var(--success-soft-bg);
+  }
+  .task-handoff.done .task-handoff-kicker,
+  .task-handoff.done .task-handoff-title { color: var(--success); }
+
+  /* ========== AI 接管总结条（聊天区顶部） ========== */
+  .ai-handoff-banner {
+    background: linear-gradient(135deg, #FFF7E6 0%, #FFF1D6 100%);
+    border: 1px solid #FFD591;
+    border-left: 4px solid var(--warning);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 12px 16px 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-regular);
+    position: relative;
+  }
+  .ai-handoff-banner-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #B8741A;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .ai-handoff-banner-text {
+    color: var(--text-main);
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .ai-handoff-banner-text strong {
+    color: #B8741A;
+    font-weight: 600;
+  }
+  .ai-handoff-banner-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-regular);
+    margin-bottom: 8px;
+  }
+  .ai-handoff-banner-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .ai-handoff-banner-meta-item strong {
+    color: var(--text-main);
+  }
+  .ai-handoff-banner-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .ai-handoff-banner-actions .btn-link {
+    font-size: 12px;
+    color: var(--primary);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .ai-handoff-banner-actions .btn-link:hover {
+    text-decoration: underline;
+  }
+  .ai-handoff-banner-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  /* ========== 接管操作按钮组 ========== */
+  .takeover-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #FAFAFC;
+    border-top: 1px solid var(--border-light);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .takeover-actions-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-right: 4px;
+    font-weight: 500;
+  }
+  .takeover-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border: 1px solid var(--border-base);
+    border-radius: 3px;
+    background: #fff;
+    color: var(--text-regular);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .takeover-action-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .takeover-action-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+  .takeover-action-btn.danger:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+
+  .conv-item { cursor: pointer; }
+  .conv-item .conv-scenario-key {
+    display: none;
+  }
+  .scenario-chip {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-soft);
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    padding: 1px 6px;
+    margin-right: 4px;
+  }
+  .ai-handoff-banner-actions a.btn-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  .ai-handoff-banner-actions .btn-claim {
+    background: var(--danger) !important;
+    color: #fff !important;
+    border-radius: 4px;
+    padding: 4px 12px !important;
+    font-weight: 600;
+  }
+  .ai-handoff-banner-actions .btn-claim:hover {
+    opacity: 0.9;
+    text-decoration: none !important;
+  }
+  .banner-defer {
+    background: #FFFBE6;
+    border-color: #FFE58F;
+  }
+  .banner-defer .ai-handoff-banner-title { color: #D48806; }
+  .input-hint-warn { color: var(--warning) !important; }
+
+
+  /* ========== 侧栏收起 ========== */
+  .sidebar {
+    position: relative;
+    width: var(--sidebar-width);
+    transition: width 0.2s ease;
+    overflow: visible;
+  }
+  .layout {
+    transition: grid-template-columns 0.2s ease;
+  }
+  .sidebar-toggle {
+    position: absolute;
+    top: 16px;
+    right: -12px;
+    z-index: 10;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    background: #fff;
+    color: var(--text-secondary);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: color .15s, border-color .15s;
+  }
+  .sidebar-toggle:hover {
+    color: var(--primary, #419EFE);
+    border-color: var(--primary, #419EFE);
+  }
+  .sidebar-toggle svg {
+    width: 12px;
+    height: 12px;
+    transition: transform .2s ease;
+  }
+  .layout.sidebar-collapsed {
+    --sidebar-width: 56px;
+  }
+  .layout.sidebar-collapsed .sidebar-toggle svg {
+    transform: rotate(180deg);
+  }
+  .layout.sidebar-collapsed .sidebar-logo {
+    padding: 0 6px;
+  }
+  .layout.sidebar-collapsed .sidebar-logo img {
+    height: 28px;
+    max-width: 100%;
+    object-fit: contain;
+  }
+  .layout.sidebar-collapsed .dashboard,
+  .layout.sidebar-collapsed .menu-item > span,
+  .layout.sidebar-collapsed .menu-item .arrow,
+  .layout.sidebar-collapsed .submenu-item > span {
+    display: none !important;
+  }
+  /* 收起后仍露出当前激活的子菜单图标 */
+  .layout.sidebar-collapsed .submenu {
+    display: block !important;
+    background: transparent;
+    padding: 0;
+  }
+  .layout.sidebar-collapsed .submenu-item:not(.active) {
+    display: none !important;
+  }
+  .layout.sidebar-collapsed .submenu-item.active {
+    display: flex !important;
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .layout.sidebar-collapsed .menu-item,
+  .layout.sidebar-collapsed .submenu-item {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .layout.sidebar-collapsed .menu-item .icon,
+  .layout.sidebar-collapsed .submenu-item .icon {
+    margin: 0;
+  }
+  .layout.sidebar-collapsed .menu {
+    padding-top: 8px;
+  }
+
+
+  /* ========== WhatsApp Agent Tab 切换条（批次 5 · 全页面统一） ========== */
+  .wa-tabbar {
+    height: 46px;
+    background: #fff;
+    border-bottom: 1px solid var(--border-lighter);
+    padding: 0 16px;
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+  .wa-tabbar::-webkit-scrollbar { height: 2px; }
+  .wa-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+  .wa-tab:hover { color: var(--primary); }
+  .wa-tab.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    font-weight: 500;
+  }
+  .wa-tab .t-icon { width: 14px; height: 14px; flex-shrink: 0; }
+  .wa-tab .t-badge {
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+    font-size: 11px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .wa-tab .t-badge.danger {
+    background: var(--danger-soft-bg);
+    color: var(--danger);
+  }
+
+  /* ========== AI 4 件套（与收件箱-销售跟进中-PC 对齐） ========== */
+  .ai4set-section .profile-section-title {
+    color: var(--primary);
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .ai4set-section .ai-summary { margin-top: 0; }
+  .ai4set-section .ai-summary-label {
+    background: var(--primary-soft-bg);
+    color: var(--primary);
+    font-weight: 500;
+  }
+  .script-list { display: flex; flex-direction: column; gap: 8px; }
+  .script-item {
+    background: #fff; border: 1px solid var(--border-extra-light);
+    border-radius: 6px; padding: 8px 10px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s; position: relative;
+  }
+  .script-item:hover { border-color: var(--primary); background: #F8FBFF; }
+  .script-item .script-tag {
+    font-size: 10px; color: var(--primary); background: var(--primary-soft-bg);
+    padding: 1px 6px; border-radius: 8px; display: inline-block;
+    margin-bottom: 4px; font-weight: 600;
+  }
+  .script-item .script-body { font-size: 12px; color: var(--text-regular); line-height: 1.5; }
+  .script-item .script-copy {
+    position: absolute; right: 8px; bottom: 6px;
+    font-size: 10px; color: var(--text-placeholder);
+  }
+  .user-profile-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px 12px; font-size: 12px;
+  }
+  .user-profile-grid .profile-field-label {
+    font-size: 11px; color: var(--text-placeholder); margin-bottom: 2px;
+  }
+  .user-profile-grid .profile-field-value { font-size: 12px; font-weight: 500; }
+  .next-steps { display: flex; flex-direction: column; gap: 6px; }
+  .next-step-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 6px 0; font-size: 12px;
+    color: var(--text-regular); line-height: 1.5;
+  }
+  .next-step-item .step-num {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0;
+  }
+  .next-step-item .step-num.critical { background: var(--danger); }
+  .next-step-item .step-num.warn { background: var(--warning); }
+  .cavi-fab {
+    position: fixed; right: 24px; bottom: 24px; z-index: 100;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 18px 12px 14px;
+    background: linear-gradient(135deg, #419EFE 0%, #2563EB 100%);
+    color: #fff; border-radius: 999px;
+    font-size: 13px; font-weight: 600; text-decoration: none;
+    box-shadow: 0 6px 20px rgba(37,99,235,0.32), 0 2px 6px rgba(0,0,0,0.08);
+    transition: transform 0.18s, box-shadow 0.18s; cursor: pointer;
+  }
+  .cavi-fab:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(37,99,235,0.42), 0 4px 8px rgba(0,0,0,0.12);
+  }
+  .cavi-fab .fab-icon {
+    width: 22px; height: 22px; background: rgba(255,255,255,0.18);
+    border-radius: 50%; display: inline-flex; align-items: center;
+    justify-content: center; flex-shrink: 0;
+  }
+  .cavi-fab .fab-icon svg { width: 14px; height: 14px; fill: #fff; }
+  .cavi-fab .fab-arrow { font-size: 14px; opacity: 0.85; transition: transform 0.18s; }
+  .cavi-fab:hover .fab-arrow { transform: translateX(2px); }
+
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ========== 1. 侧栏 ========== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="https://cdn.autocava.com.mx/_nuxt/asset/logo.v3.mLItLIXo.svg" alt="AutoCava" />
+    </div>
+    <button type="button" class="sidebar-toggle" id="sidebarToggle" title="收起/展开侧栏" aria-label="收起侧栏">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+
+
+    <div class="menu">
+      <!-- 金融订单（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/></svg>
+        <span>金融订单</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 网站管理（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
+        <span>网站管理</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 车型库（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14l-1.5-5h-11z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M3 17v-4l3-5h12l3 5v4"/></svg>
+        <span>车型库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 线索库（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>线索库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <a href="WhatsApp-Agent-PC.html" class="menu-item active">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span>WhatsApp Agent</span>
+      </a><!-- System Monitor -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1c0-3 3-5 8-5s8 2 8 5v1"/></svg>
+        <span>System Monitor</span>
+        <span class="arrow">▾</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========== 主区域：含顶级 Tab + 3 列内容 ========== -->
+
+    
+  <div class="main-area">
+
+    <!-- ========== 顶部面包屑（批次 6 · 与工作台/跟进策略/知识库/统一客服收件箱统一） ========== -->
+    <header class="topbar">
+      <div class="topbar-crumb">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span>WhatsApp Agent</span>
+        <span class="sep">/</span>
+        <span class="current">收件箱 · AI 跟进中</span>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-meta">
+          <span class="status-dot"></span>
+          <span>ycloud · 在线</span>
+        </div>
+        <div class="avatar-circle" title="销售 · Maria">M</div>
+      </div>
+    </header>
+
+    <!-- ========== 5 Tab 切换条（批次 5 · 统一全页面） ========== -->
+    <nav class="wa-tabbar">
+      <a href="WhatsApp-Agent-PC.html" class="wa-tab">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        <span>工作台</span>
+      </a>
+            <a href="统一客服收件箱-PC.html" class="wa-tab active">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <span>统一客服收件箱</span>
+        <span class="t-badge danger">2</span>
+      </a>
+      <a href="跟进策略-Skill-PC.html" class="wa-tab">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>跟进策略 Skill</span>
+      </a>
+      <a href="知识库(cavi).html" class="wa-tab">
+        <svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>AI 助手（同Cavi）</span>
+      </a>
+    </nav>
+
+    <!-- ========== 顶级工作流 Tab（4 个独立 HTML 之间互链） ========== -->
+    <!-- 重构(2026-09-06):Tab 数字改为占位符,由 JS 从 window.WINDOW_SCENARIOS 动态算 -->
+    <nav class="top-tabs">
+      <a class="top-tab" data-stage="all" href="统一客服收件箱-PC.html">
+        <div class="top-tab-left">
+          <div class="top-tab-row">
+            <span class="top-tab-label">全部</span>
+            <span class="top-tab-count" data-auto="true">—</span>
+          </div>
+          <span class="top-tab-hint">总览 · 所有线索</span>
+        </div>
+        <span class="top-tab-arrow"></span>
+      </a>
+      <a class="top-tab active" data-stage="ai" href="收件箱-AI跟进中-PC.html">
+        <div class="top-tab-left">
+          <div class="top-tab-row">
+            <span class="top-tab-label">AI 跟进中</span>
+            <span class="top-tab-count" data-auto="true">—</span>
+          </div>
+          <span class="top-tab-hint">AI 主动跟单 · 含战败/失活/暂缓</span>
+        </div>
+        <span class="top-tab-arrow"></span>
+      </a>
+      <a class="top-tab" data-stage="handoff" href="收件箱-待销售接管-PC.html">
+        <div class="top-tab-left">
+          <div class="top-tab-row">
+            <span class="top-tab-label">待销售接管</span>
+            <span class="top-tab-dot"></span>
+            <span class="top-tab-count" data-auto="true">—</span>
+          </div>
+          <span class="top-tab-hint">等你接手 · 含预审通过转入</span>
+        </div>
+        <span class="top-tab-arrow"></span>
+      </a>
+      <a class="top-tab" data-stage="sales" href="收件箱-销售跟进中-PC.html">
+        <div class="top-tab-left">
+          <div class="top-tab-row">
+            <span class="top-tab-label">销售跟进中</span>
+            <span class="top-tab-count" data-auto="true">—</span>
+          </div>
+          <span class="top-tab-hint">我在跟 · 跟单中</span>
+        </div>
+        <span class="top-tab-arrow"></span>
+      </a>
+    </nav>
+
+    <!-- ========== 3 列内容 ========== -->
+    <div class="main-cols">
+
+  <!-- ========== 2. 会话列表 ========== -->
+  <section class="conv-list">
+    <div class="conv-search">
+      <input type="text" placeholder="搜索客户姓名/手机号/标签..." />
+    </div>
+
+    <!-- 工作流 Tab 已升级到顶部全宽导航条 -->
+
+    <!-- 会话条目：11 场景 · 点击切换（由 JS 渲染） -->
+    <div class="conv-items" id="convItems"></div>
+  </section>
+
+  <!-- ========== 3. 主消息区 ========== -->
+  <section class="chat-area">
+
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <div class="chat-header-name" id="chatName">—</div>
+        <div class="chat-header-meta">
+          <span class="window-indicator" id="chatWindow">—</span>
+          <span class="ai-progress-indicator" id="chatRound">—</span>
+        </div>
+        <div class="chat-header-subhint" id="chatSubhint">—</div>
+      </div>
+      <div class="chat-actions">
+        <button class="btn btn-secondary" type="button">人工暂停 AI</button>
+      </div>
+      <button class="btn-icon-only" title="客户设置" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+
+    <div class="chat-stream" id="chatStream"></div>
+
+    <div class="chat-input">
+      <div class="input-toolbar">
+        <span class="tool-btn" title="表情"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></span>
+        <span class="tool-btn" title="附件"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></span>
+        <span class="tool-btn" title="图片"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
+        <span class="tool-btn" title="HSM 模版">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h6M9 17h4"/></svg>
+        </span>
+      </div>
+      <textarea class="input-textarea" id="chatInput" placeholder="输入消息...（Shift+Enter 换行）"></textarea>
+      <div class="input-actions">
+        <div class="input-hint" id="inputHint">💡 当前为 <strong style="color: var(--primary);">AI 接管</strong> 模式</div>
+        <div class="input-btns">
+          <button class="btn" type="button">取消</button>
+          <button class="btn btn-primary" type="button">发送</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 4. 客户档案 ========== -->
+  <aside class="profile" id="profilePanel"></aside>
+
+    </div><!-- /.main-cols -->
+  </div><!-- /.main-area -->
+
+</div><!-- /.layout -->
+
+
+<script>
+(function () {
+  'use strict';
+
+  const AI_AVATAR = '<img src="assets/autocava-wa-logo.png" alt="AutoCava" width="32" height="32" />';
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function nl(s) {
+    return esc(s).replace(/\n/g, '<br>');
+  }
+
+  function fieldStatus(st, text) {
+    const cls = st === 'done' ? 'precheck-status-done' : st === 'sys' ? 'precheck-status-sys' : 'precheck-status-miss';
+    return '<span class="' + cls + '">' + esc(text) + '</span>';
+  }
+
+  function precheckBlock(p) {
+    if (!p) return '';
+    // 模式 1：已收齐（completed = true）· 单行聚合显示，不再逐字段展开
+    if (p.completed) {
+      return (
+        '<div class="profile-section">' +
+          '<div class="profile-section-title">预审信息收集</div>' +
+          '<div class="precheck-progress"><span>用户必填进度</span><strong style="color:var(--success);">' + esc(p.progress) + ' 已完成</strong></div>' +
+          '<div class="profile-field"><span class="profile-field-label">收齐时间</span><span class="profile-field-value">' + esc(p.completedAt || '-') + '</span></div>' +
+          '<div class="precheck-hint">' + esc(p.hint || '来源：金融订单预审字段 · 用户必填 8 项') + '</div>' +
+        '</div>'
+      );
+    }
+    // 模式 2：未收齐 · 逐字段展开
+    const rows = (p.fields || []).map(function (f) {
+      return '<div class="profile-field"><span class="profile-field-label">' + esc(f.label) +
+        '</span><span class="profile-field-value">' + fieldStatus(f.st, f.text) + '</span></div>';
+    }).join('');
+    return (
+      '<div class="profile-section">' +
+        '<div class="profile-section-title">预审信息收集</div>' +
+        '<div class="precheck-progress"><span>用户必填进度</span><strong>' + esc(p.progress) + '</strong></div>' +
+        rows +
+        '<div class="precheck-hint">' + esc(p.hint || '来源：金融订单预审字段 · 用户必填 8 项') + '</div>' +
+      '</div>'
+    );
+  }
+
+  function reviewBlock(r) {
+    if (!r || !r.timeline) return '';
+    const tagCls = { approved: 'green', rejected: 'red', more_info: 'yellow', reviewing: 'blue', pending: 'gray', in_progress: 'blue', submitted: 'blue', read: 'yellow', hsm: 'green', reminded: 'yellow' };
+    const resultLabel = ({ approved: '信审通过 · approved', rejected: '信审未通过 · rejected', more_info: '需要补件 · more_info' })[r.result] || ('信审状态 · ' + r.result);
+    const resultPillCls = ({ approved: 'pill-success', rejected: 'pill-danger', more_info: 'pill-warning' })[r.result] || 'pill-primary';
+    const nodes = r.timeline.map(function (n) {
+      const cls = tagCls[n.tag] || n.dot || 'blue';
+      return '<li class="precheck-node"><span class="precheck-node-dot ' + cls + '"></span>' +
+        '<div class="precheck-node-time">' + esc(n.time) + '</div>' +
+        '<div><span class="precheck-node-tag ' + cls + '">' + esc(n.tag) + '</span>' +
+        '<span class="precheck-node-label">' + esc(n.label) + '</span></div></li>';
+    }).join('');
+    return (
+      '<div class="profile-section">' +
+        '<div class="profile-section-title">信审进度</div>' +
+        '<div class="profile-field"><span class="profile-field-label">最终结果</span>' +
+        '<span class="profile-field-value"><span class="pill ' + resultPillCls + '">' + esc(resultLabel) + '</span></span></div>' +
+        '<div class="profile-field"><span class="profile-field-label">提交时间</span><span class="profile-field-value">' + esc(r.submittedAt || '-') + '</span></div>' +
+        '<div class="profile-field"><span class="profile-field-label">反馈时间</span><span class="profile-field-value">' + esc(r.reviewedAt || '-') + '</span></div>' +
+        (r.bank ? '<div class="profile-field"><span class="profile-field-label">金融团队</span><span class="profile-field-value">' + esc(r.bank) + '</span></div>' : '') +
+        '<ol class="precheck-timeline" style="margin-top:10px;">' + nodes + '</ol>' +
+        '<div class="precheck-hint">' + esc('HSM 模板：' + (r.hsmId || '-')) + '</div>' +
+      '</div>'
+    );
+  }
+
+  // —— 11 场景 ——
+  // 重构对齐(2026-09-06):改为 window.WINDOW_SCENARIOS 数据驱动模式,
+  // 与「销售跟进中 / 待销售接管 / 统一客服收件箱」3 个页面共用同一套数据契约,
+  // 渲染函数(renderList / renderMessages / renderProfile)保持不变。
+  window.WINDOW_DEFAULT_ID = 's1';
+  window.WINDOW_SCENARIOS = [
+  /* —— 待销售接管 3 —— */
+  {
+    id: 'fernanda',
+    list: {
+      initials: 'FS', name: 'Fernanda Soto Gil', time: '刚刚', badge: '1',
+      avatarStyle: 'background: var(--danger); color: #fff;', itemClass: 'priority handoff',
+      timeStyle: 'color: var(--danger); font-weight: 600;',
+      preview: 'Ya te pasé todos los datos, ¿cuándo me llaman?',
+      tagsHtml: '<span class="conv-tag conv-tag-stage-handoff">待销售接管</span><span class="conv-tag" style="background: var(--success-soft-bg); color: var(--success);">预审 8/8</span><span class="conv-tag conv-tag-high">高意向</span><span>·</span><span>XPENG G6</span>'
+    },
+    header: { name: 'Fernanda Soto Gil', windowClass: 'window-open', windowText: '待销售接管 · SLA 剩 4min', round: '预审通过转入', subhint: '完整认领请到「待销售接管」' },
+    actionsHtml: '<a class="btn btn-success btn-primary" href="收件箱-待销售接管-PC.html#fernanda" style="text-decoration:none;color:#fff;">去待销售接管认领 →</a>',
+    inputHint: '💡 总览 · 认领请到「待销售接管」',
+    banner: {
+      title: '建议销售接管',
+      text: '预审 8/8 通过，已进入待销售接管队列。',
+      meta: 'S8 转入 · SLA 紧急',
+      advice: '请到「待销售接管」认领',
+      actions: [{ label: '打开待销售接管 →', href: '收件箱-待销售接管-PC.html#fernanda', claim: true }]
+    },
+    messages: [
+      { type: 'in', initials: 'FS', name: 'Fernanda Soto', time: '13:22', text: 'Ya te pasé todos los datos, ¿cuándo me llaman?' },
+      { type: 'system', text: '预审通过 → 待销售接管', status: 'Handoff' }
+    ],
+    profile: {
+      initials: 'FS', name: 'Fernanda Soto Gil', phone: '+52 55 6677 8899', steps: [],
+      summary: '预审通过，客户催促回电，待销售认领。', tags: [{ t: '待销售接管', c: 'danger' }, { t: '高意向', c: 'success' }],
+      preferenceTags: [
+        { t: '西语', c: 'primary' },
+        { t: 'G6 · Model Y · Sealion', c: 'info' }
+      ],
+      source: 'AI 转入', car: 'XPENG G6', brand: 'XPENG', budget: '$14,000 MXN/月',
+      status: 'pending_handoff', window: '已打开', docs: '8/8', last: '刚刚',
+      userProfile: {
+        language: '西语',
+        occupation: '项目经理',
+        familyStatus: '已婚 · 2 孩',
+        purchaseType: '首次购车',
+        decisionMaker: '本人',
+        region: 'CDMX · Coyoacán',
+        interests: '新能源 / SUV / 续航 / 智能驾驶',
+        brandPrefs: 'XPENG · Tesla · BYD',
+        seriesInterest: 'XPENG G6 · Model Y · Sealion 07',
+        bodyType: 'SUV',
+        energyType: '纯电',
+        fullBudget: '$720,000–$900,000 MXN',
+        downPayment: '25–30%',
+        monthlyBudget: '$12,000–$15,000 MXN'
+      },
+      recommendedScripts: [
+        { tag: '回电', body: 'Hola Fernanda, soy Maria de AutoCava. Recibí su solicitud del XPENG G6 y le llamo para confirmar el horario de prueba de manejo.' },
+        { tag: '试驾', body: 'Tengo espacio este sábado a las 11:00. ¿Le confirmo y le envío la ubicación del showroom?' },
+        { tag: '签约', body: 'Ya validamos su preaprobación. Si confirma hoy, le aseguro inventario y el financiamiento.' }
+      ],
+      nextSteps: [
+        { level: 'critical', text: '客户主动要求回电，2h 内必须接管' },
+        { level: 'warn', text: '预审已通过，SLA 不可超时' },
+        { level: 'normal', text: '确认周六试驾时间' }
+      ],
+      precheck: { progress: '8/8', fields: [{ label: '进度', st: 'done', text: '8/8 已齐' }] }
+    }
+  },
+  {
+    id: 'laura',
+    list: {
+      initials: 'LM', name: 'Laura Martinez Solis', time: '周一',
+      avatarStyle: 'background: var(--warning); color: #fff;', itemClass: 'priority handoff',
+      timeStyle: 'color: var(--warning); font-weight: 600;',
+      preview: '[图片] · SLA 已超时',
+      tagsHtml: '<span class="conv-tag conv-tag-stage-handoff">待销售接管</span><span class="conv-tag" style="background: var(--warning-soft-bg); color: var(--warning);">已超时</span><span>·</span><span>JAC E10X</span>'
+    },
+    header: { name: 'Laura Martinez Solis', windowClass: 'window-open', windowText: '已超时 · 3 天未响应', round: '超时待处理', subhint: '完整处理请到「待销售接管」' },
+    actionsHtml: '<a class="btn btn-primary" href="收件箱-销售跟进中-PC.html#carlos" style="text-decoration:none;color:#fff;">立即接管</a>',
+    inputHint: '💡 总览 · 详情请到「待销售接管」',
+    banner: {
+      title: 'SLA 已超时',
+      text: '客户曾发图片，超时未人工响应。',
+      meta: '超时 3 天',
+      advice: '请到「待销售接管」处理',
+      actions: [{ label: '打开待销售接管 →', href: '收件箱-待销售接管-PC.html#laura', claim: true }]
+    },
+    messages: [
+      { type: 'in', initials: 'LM', name: 'Laura', time: '周一', text: '[图片]' },
+      { type: 'system', text: '转人工后超时未响应', status: 'SLA' }
+    ],
+    profile: {
+      initials: 'LM', name: 'Laura Martinez Solis', phone: '+52 81 9000 1111', steps: [],
+      summary: 'JAC E10X，转人工后超时。', tags: [{ t: '已超时', c: 'warning' }],
+      source: 'WA', car: 'JAC E10X', brand: 'JAC', budget: '-',
+      status: 'handoff_overdue', window: '已打开', docs: '—', last: '周一', precheck: null
+    }
+  },
+  /* —— AI 跟进中 8（含 2 战败/失活 + 1 暂缓） —— */
+  {
+    id: 's1',
+    list: {
+      initials: 'RS', name: 'Roberto Sanchez Mejia', time: '3min 前',
+      avatarStyle: 'background: var(--primary-soft-bg); color: var(--primary); border: 2px dashed var(--primary);',
+      preview: 'HSM 已发 · 等待客户首次回复',
+      tagsHtml: '<span class="conv-tag conv-tag-stage-ai">AI 跟进中</span><span class="conv-tag conv-tag-task-first">1·首次跟进</span><span>·</span><span>Tiguan</span>'
+    },
+    header: { name: 'Roberto Sanchez Mejia', windowClass: 'window-closed', windowText: '24h 窗口 · 未打开', round: '首联待回', subhint: '窗外 HSM 首联' },
+    actionsHtml: '<a class="btn" href="收件箱-AI跟进中-PC.html#s1" style="text-decoration:none;">在 AI 跟进中打开 →</a>',
+    inputHint: '💡 AI 接管 · 窗外仅 HSM', banner: null,
+    messages: [
+      { type: 'out', tag: 'HSM 模版', time: '14:52', text: 'Hola Roberto 👋 Vimos tu interés en el Volkswagen Tiguan.', status: '✓✓ 已送达 · 未读' }
+    ],
+    profile: {
+      initials: 'RS', name: 'Roberto Sanchez Mejia', phone: '+52 55 8123 4401', steps: [],
+      summary: 'CRM 新线索 HSM 首联，等待客户回复开窗。', tags: [{ t: '首次跟进', c: 'primary' }],
+      source: '网页留资', car: 'VW Tiguan', brand: 'Volkswagen', budget: '-',
+      status: 'ai_outreach_pending', window: '未打开', docs: '0/8', last: '14:52', precheck: null
+    }
+  },
+  {
+    id: 's2',
+    list: {
+      initials: 'DS', name: 'Diego Sanchez Vargas', time: '周一', badge: '1',
+      preview: 'Hola, vi el anuncio del XPENG G6...',
+      tagsHtml: '<span class="conv-tag conv-tag-stage-ai">AI 跟进中</span><span class="conv-tag">①收集需求</span><span class="conv-tag conv-tag-high">高意向</span><span>·</span><span>XPENG G6</span>'
+    },
+    header: { name: 'Diego Sanchez Vargas', windowClass: 'window-open', windowText: '24h · 剩 20h', round: '需求收集', subhint: '客户已回 HSM' },
+    actionsHtml: '<a class="btn" href="收件箱-AI跟进中-PC.html#s2" style="text-decoration:none;">在 AI 跟进中打开 →</a>',
+    inputHint: '💡 AI 接管模式', banner: null,
+    messages: [
+      { type: 'in', initials: 'DS', name: 'Diego', time: '周一', text: 'Hola, vi el anuncio del XPENG G6...' },
+      { type: 'out', tag: 'AI 自动', time: '周一', text: '¡Hola Diego! ¿Para cuántas personas y uso principal?', status: '✓✓ 已送达' }
+    ],
+    profile: {
+      initials: 'DS', name: 'Diego Sanchez Vargas', phone: '+52 81 7001 2210', steps: [],
+      summary: 'XPENG G6，需求字段收集中。', tags: [{ t: 'AI 跟进中', c: 'primary' }, { t: '高意向', c: 'success' }],
+      source: '广告', car: 'XPENG G6', brand: 'XPENG', budget: '待确认',
+      status: 'ai_collecting', window: '已打开', docs: '0/8', last: '周一', precheck: null
+    }
+  },
+  {
+    id: 's3',
+    list: {
+      initials: 'MR', name: 'Maria Rodriguez Lopez', time: '09:48', badge: '1',
+      preview: '¿Cuánto cuesta la mensualidad?',
+      tagsHtml: '<span class="conv-tag conv-tag-stage-ai">AI 跟进中</span><span class="conv-tag conv-tag-task-incubate">2·用户孵化</span><span class="conv-tag conv-tag-high">高意向</span><span>·</span><span>Nissan Versa</span>'
+    },
+    header: { name: 'Maria Rodriguez Lopez', windowClass: 'window-open', windowText: '24h · 剩 16h', round: '孵化中', subhint: '追问月供' },
+    actionsHtml: '<a class="btn" href="收件箱-AI跟进中-PC.html#s3" style="text-decoration:none;">在 AI 跟进中打开 →</a>',
+    inputHint: '💡 AI 接管模式', banner: null,
+    messages: [
+      { type: 'in', initials: 'MR', name: 'Maria', time: '09:48', text: '¿Cuánto cuesta la mensualidad?' },
+      { type: 'out', tag: 'AI 自动', time: '09:48', text: 'Depende de enganche y plazo. ¿Presupuesto $6–8k MXN?', status: '✓✓ 已送达' }
+    ],
+    profile: {
+      initials: 'MR', name: 'Maria Rodriguez Lopez', phone: '+52 33 1555 9088', steps: [],
+      summary: 'Versa 月供咨询，用户孵化中。', tags: [{ t: '用户孵化', c: 'warning' }],
+      source: 'FB', car: 'Nissan Versa', brand: 'Nissan', budget: '待确认',
+      status: 'ai_nurturing', window: '已打开', docs: '0/8', last: '09:48', precheck: null
+    }
+  },
+
+  {
+    id: 's4',
+    list: {
+      initials: 'PG', name: 'Pedro Garcia Mendoza', time: '昨天',
+      preview: 'Gracias, lo voy a pensar.',
+      tagsHtml: '<span class="conv-tag conv-tag-stage-ai">AI 跟进中</span><span class="conv-tag">②意向识别</span><span>·</span><span>BYD Dolphin</span>'
+    },
+    header: { name: 'Pedro Garcia Mendoza', windowClass: 'window-open', windowText: '24h · 剩 10h', round: '低意向孵化', subhint: '已排 D+1' },
+    actionsHtml: '<a class="btn" href="收件箱-AI跟进中-PC.html#s4" style="text-decoration:none;">在 AI 跟进中打开 →</a>',
+    inputHint: '💡 AI 接管模式', banner: null,
+    messages: [
+      { type: 'in', initials: 'PG', name: 'Pedro', time: '昨天', text: 'Gracias, lo voy a pensar.' },
+      { type: 'system', text: '低意向 · 已排 D+1 轻提醒', status: 'Nurture' }
+    ],
+    profile: {
+      initials: 'PG', name: 'Pedro Garcia Mendoza', phone: '+52 81 3344 1200', steps: [],
+      summary: '客户犹豫，轻量孵化，不进预审。', tags: [{ t: '意向识别', c: 'warning' }],
+      source: '留资', car: 'BYD Dolphin', brand: 'BYD', budget: '-',
+      status: 'ai_nurturing', window: '已打开', docs: '0/8', last: '昨天', precheck: null
+    }
+  },
+  {
+    id: 's5',
+    list: {
+      initials: 'AR', name: 'Ana Patricia Ruiz', time: 'D+3',
+      preview: '沉默唤醒 HSM · 换价值点跟进',
+      tagsHtml: '<span class="conv-tag conv-tag-stage-ai">AI 跟进中</span><span class="conv-tag">沉默唤醒 D+3</span><span>·</span><span>XPENG G6</span>'
+    },
+    header: { name: 'Ana Patricia Ruiz', windowClass: 'window-closed', windowText: '24h · 已关', round: 'D+3 唤醒', subhint: '窗外 HSM 再触达' },
+    actionsHtml: '<a class="btn" href="收件箱-AI跟进中-PC.html#s5" style="text-decoration:none;">在 AI 跟进中打开 →</a>',
+    inputHint: '💡 窗外仅 HSM', banner: null,
+    messages: [
+      { type: 'out', tag: 'HSM 模版', time: 'D+3', text: 'Hola Ana, ¿sigue vigente tu plan de compra del G6?', status: '✓✓ 已送达' }
+    ],
+    profile: {
+      initials: 'AR', name: 'Ana Patricia Ruiz', phone: '+52 55 2200 7788', steps: [],
+      summary: 'D+3 沉默唤醒，换金融可行性价值点。', tags: [{ t: '沉默唤醒', c: 'warning' }],
+      source: '留资', car: 'XPENG G6', brand: 'XPENG', budget: '-',
+      status: 'ai_reengage', window: '已关', docs: '0/8', last: 'D+3', precheck: null
+    }
+  },
+  {
+    id: 's6',
+    list: {
+      initials: 'JT', name: 'Jose Angel Torres Bernal', time: '18:45', badge: '2',
+      preview: 'Sí, me interesa. Es para mi familia...',
+      tagsHtml: '<span class="conv-tag conv-tag-stage-ai">AI 跟进中</span><span class="conv-tag conv-tag-ai-precheck">④信审结果</span><span class="conv-tag conv-tag-high">高意向</span><span>·</span><span>XPENG G6</span>'
+    },
+    header: { name: 'Jose Angel Torres Bernal', windowClass: 'window-open', windowText: '24h 窗口 · 已开', round: '信审结果已推送', subhint: 'approved · 待客户回复' },
+    actionsHtml: '<a class="btn" href="收件箱-AI跟进中-PC.html#s6" style="text-decoration:none;">在 AI 跟进中打开 →</a>',
+    inputHint: '💡 AI 接管模式 · 等待客户回复 HSM', banner: null,
+    messages: [
+      { type: 'in', initials: 'JT', name: 'Jose Angel', time: '10:21', text: 'Sí, me interesa. Es para mi familia, somos 4.' },
+      { type: 'out', tag: 'AI 自动', time: '10:23', text: '¿Me puedes compartir tu RFC y correo?', status: '✓✓ 已送达' },
+      { type: 'in', initials: 'JT', name: 'Jose Angel', time: '14:50', text: 'Te paso mi RFC: TOBJ900425HDF y correo jose.torres@gmail.com' },
+      { type: 'out', tag: 'AI 自动', time: '14:51', text: '¡Gracias! Voy a registrar tu información para iniciar la evaluación.', status: '✓✓ 已送达' },
+      { type: 'system', text: '预审 8/8 已收齐 · 触发 sop_07 wait 节点', status: '✓' },
+      { type: 'in', initials: 'HSM', tag: 'AutoCava', time: '18:45', text: 'Hola Jose Angel, te compartimos el enlace seguro para subir tu INE y 3 meses de estados de cuenta. (MStar 加密上传 · 2 分钟)', status: '✓✓ 已读 18:50', hsmId: 'hsm_precheck_link_v1' },
+      { type: 'in', initials: 'JT', name: 'Jose Angel', time: '19:12', text: 'Listo, ya subí los documentos en el enlace.' },
+      { type: 'system', text: 'MStar 审核中 · review.result 等待回调', status: '⏳' },
+      { type: 'in', initials: 'HSM', tag: 'AutoCava', time: '11:42 (+1d)', text: 'Hola Jose Angel, ¡buenas noticias! Tu evaluación con Mstar para el XPENG G6 fue aprobada. Tu asesor de AutoCava te contactará hoy para coordinar los siguientes pasos. ¿Alguna duda?', status: '✓✓ 已读 11:48', hsmId: 'hsm_precheck_result_approved_v1' }
+    ],
+    profile: {
+      initials: 'JT', name: 'Jose Angel Torres Bernal', phone: '+52 81 2953 7135', steps: [],
+      summary: 'XPENG G6 家庭用车，预审已通过，MStar 信审 approved。', tags: [{ t: '信审已通过', c: 'success' }, { t: '高意向', c: 'success' }],
+      source: '留资', car: 'XPENG G6', brand: 'XPENG', budget: '$15,000 MXN/月',
+      status: 'precheck_approved', window: '已打开', docs: '8/8', last: '11:48',
+      precheck: { progress: '8/8', completed: true, completedAt: '2026-09-08 14:52', hint: 'RFC / 月收入 / 姓名 / 性别 / 电话 / 邮箱 / 地址 / 邮编 全部已收集' },
+      review: {
+        result: 'approved', submittedAt: '2026-09-08 19:15', reviewedAt: '2026-09-09 11:42',
+        bank: 'Mstar', hsmId: 'hsm_precheck_result_approved_v1',
+        timeline: [
+          { dot: 'blue',   time: '09-08 14:52', tag: 'pending',     label: 'HSM 推送预审链接' },
+          { dot: 'blue',   time: '09-08 15:30', tag: 'in_progress', label: '客户打开填写' },
+          { dot: 'blue',   time: '09-08 19:12', tag: 'submitted',   label: '客户提交预审' },
+          { dot: 'blue',   time: '09-08 19:12', tag: 'reviewing',   label: 'MStar 审核中（约 16h30）' },
+          { dot: 'green',  time: '09-09 11:42', tag: 'approved',    label: 'MStar 审核通过' },
+          { dot: 'green',  time: '09-09 11:42', tag: 'hsm',         label: '通知客户 HSM' },
+          { dot: 'yellow', time: '09-09 11:48', tag: 'read',        label: '客户已读未回' }
+        ]
+      }
+    }
+  },
+  {
+    id: 's9',
+    list: {
+      initials: 'LR', name: 'Lucia Ramirez Ortega', time: '8/28', itemClass: 'is-lost',
+      preview: 'No, ya compré auto en otra agencia',
+      tagsHtml: '<span class="conv-tag conv-tag-lost">已战败</span><span>·</span><span>BYD Dolphin</span>'
+    },
+    header: { name: 'Lucia Ramirez Ortega', windowClass: 'window-closed', windowText: '已战败', round: '关闭待确认', subhint: '已购竞品' },
+    actionsHtml: '<a class="btn" href="收件箱-AI跟进中-PC.html#s9" style="text-decoration:none;">在 AI 跟进中打开 →</a>',
+    inputHint: '💡 AI 已停跟', banner: null,
+    messages: [
+      { type: 'in', initials: 'LR', name: 'Lucia', time: '15:20', text: 'No, ya compré auto en otra agencia, gracias' },
+      { type: 'out', tag: 'AI 自动', time: '15:21', text: 'Entendido, ¡felicidades!', status: '✓✓ 已送达' }
+    ],
+    profile: {
+      initials: 'LR', name: 'Lucia Ramirez Ortega', phone: '+52 81 1111 2222', steps: [],
+      summary: '战败：已购竞品。', tags: [{ t: '已战败', c: 'danger' }],
+      source: '留资', car: 'BYD Dolphin', brand: 'BYD', budget: '-',
+      status: 'lost', window: '—', docs: '—', last: '8/28', precheck: null
+    }
+  },
+  {
+    id: 's11',
+    list: {
+      initials: 'MT', name: 'Miguel Angel Torres', time: '8 天前', itemClass: 'is-lost',
+      preview: '¿Tienen financiamiento sin buró?',
+      tagsHtml: '<span class="conv-tag conv-tag-lost">失活</span><span>·</span><span>JAC E10X</span>'
+    },
+    header: { name: 'Miguel Angel Torres', windowClass: 'window-closed', windowText: '失活', round: 'D+7 后无回', subhint: '可再激活' },
+    actionsHtml: '<a class="btn" href="收件箱-AI跟进中-PC.html#s11" style="text-decoration:none;">在 AI 跟进中打开 →</a>',
+    inputHint: '💡 AI 已停跟 · 等待再激活', banner: null,
+    messages: [
+      { type: 'in', initials: 'MT', name: 'Miguel', time: '8 天前', text: '¿Tienen financiamiento sin buró?' },
+      { type: 'system', text: 'D+7 收口后失活', status: 'Inactive' }
+    ],
+    profile: {
+      initials: 'MT', name: 'Miguel Angel Torres', phone: '+52 81 4444 5555', steps: [],
+      summary: '失活：D+7 后仍无回复，保留再激活可能。', tags: [{ t: '失活', c: 'danger' }],
+      source: 'WA', car: 'JAC E10X', brand: 'JAC', budget: '-',
+      status: 'inactive', window: '—', docs: '—', last: '8 天前', precheck: null
+    }
+  },
+  {
+    id: 's10',
+    list: {
+      initials: 'SC', name: 'Sofia Castillo Mendoza', time: '9/15',
+      preview: 'Lo voy a comprar hasta el próximo año...',
+      tagsHtml: '<span class="conv-tag" style="background:#F4F4F5;color:#606266;">暂缓</span><span>·</span><span>BYD Dolphin</span>'
+    },
+    header: { name: 'Sofia Castillo Mendoza', windowClass: 'window-closed', windowText: '暂缓至明年', round: '低/培育', subhint: '已记录再激活日' },
+    actionsHtml: '<a class="btn" href="收件箱-AI跟进中-PC.html#s10" style="text-decoration:none;">在 AI 跟进中打开 →</a>',
+    inputHint: '💡 暂缓中 · 不高频触达', banner: null,
+    messages: [
+      { type: 'in', initials: 'SC', name: 'Sofia', time: '9/15', text: 'Lo voy a comprar hasta el próximo año, gracias' },
+      { type: 'system', text: '标记暂缓 · 再激活日历已写', status: 'Deferred' }
+    ],
+    profile: {
+      initials: 'SC', name: 'Sofia Castillo Mendoza', phone: '+52 33 8888 9999', steps: [],
+      summary: '暂缓：客户明确明年再买。', tags: [{ t: '暂缓', c: 'warning' }],
+      source: '留资', car: 'BYD Dolphin', brand: 'BYD', budget: '-',
+      status: 'deferred', window: '—', docs: '—', last: '9/15', precheck: null
+    }
+  },
+  /* —— 销售跟进中 2 —— */
+  {
+    id: 'carlos',
+    list: {
+      initials: 'CH', name: 'Carlos Hernandez Ruiz', time: '昨天',
+      preview: 'Sí, en la tarde está bien.',
+      tagsHtml: '<span class="conv-tag" style="background: var(--success-soft-bg); color: var(--success);">销售跟进中</span><span class="conv-tag conv-tag-high">高意向</span><span>·</span><span>MG5</span>'
+    },
+    header: { name: 'Carlos Hernandez Ruiz', windowClass: 'window-open', windowText: '销售跟单 · 第 5 天', round: '人工', subhint: '销售跟进中' },
+    actionsHtml: '<a class="btn" href="收件箱-销售跟进中-PC.html#carlos" style="text-decoration:none;">在销售跟进中打开 →</a>',
+    inputHint: '💡 销售跟进模式', banner: null,
+    messages: [
+      { type: 'sales', initials: '销', name: '销售 · Diego', time: '昨天', text: '¿Podemos agendar una llamada hoy?', status: '✓✓ 已读' },
+      { type: 'in', initials: 'CH', name: 'Carlos', time: '昨天', text: 'Sí, en la tarde está bien.' }
+    ],
+    profile: {
+      initials: 'CH', name: 'Carlos Hernandez Ruiz', phone: '+52 33 4107 8829', steps: [],
+      summary: 'MG5，预审 7/8，销售跟进第 5 天。', tags: [{ t: '销售跟进中', c: 'success' }],
+      source: '陌生 WA', car: 'MG5', brand: 'MG', budget: '$9,500 MXN/月',
+      status: 'in_follow_up', window: '已接管', docs: '7/8', last: '昨天',
+      precheck: { progress: '7/8', fields: [{ label: '进度', st: 'done', text: '7/8 · 差邮编' }] }
+    }
+  },
+  {
+    id: 'ana-s',
+    list: {
+      initials: 'AL', name: 'Ana Lopez Castillo', time: '9/01',
+      preview: '¿cuándo puedo ir al showroom?',
+      tagsHtml: '<span class="conv-tag" style="background: var(--success-soft-bg); color: var(--success);">销售跟进中</span><span class="conv-tag conv-tag-high">高意向</span><span>·</span><span>Tiguan</span>'
+    },
+    header: { name: 'Ana Lopez Castillo', windowClass: 'window-open', windowText: '销售跟单 · 第 2 天', round: '人工', subhint: '已认领 · 约到店' },
+    actionsHtml: '<a class="btn" href="收件箱-销售跟进中-PC.html#ana-s" style="text-decoration:none;">在销售跟进中打开 →</a>',
+    inputHint: '💡 销售跟进模式', banner: null,
+    messages: [
+      { type: 'sales', initials: '销', name: '销售 · Maria', time: '9/01', text: 'Hola Ana, te ayudo con el Tiguan Highline.', status: '✓✓ 已读' },
+      { type: 'in', initials: 'AL', name: 'Ana Lopez', time: '9/01', text: 'Perfecto, ¿cuándo puedo ir al showroom?' }
+    ],
+    profile: {
+      initials: 'AL', name: 'Ana Lopez Castillo', phone: '+52 55 4823 1907', steps: [],
+      summary: 'Tiguan 高意向，销售跟进中约到店。',
+      tags: [{ t: '销售跟进中', c: 'success' }],
+      source: '官网', car: 'Tiguan', brand: 'Volkswagen', budget: '$13,500 MXN/月',
+      status: 'in_follow_up', window: '已接管', docs: '4/8', last: '9/01', precheck: null
+    }
+  }
+];
+
+  const SCENARIOS = window.WINDOW_SCENARIOS;
+  const byId = {};
+  SCENARIOS.forEach(function (s) { byId[s.id] = s; });
+
+  function tagColor(c) {
+    if (c === 'success') return 'background: var(--success-soft-bg); color: var(--success);';
+    if (c === 'warning') return 'background: var(--warning-soft-bg); color: var(--warning);';
+    if (c === 'danger') return 'background: #FEF0F0; color: var(--danger);';
+    if (c === 'info') return 'background: var(--bg-base); color: var(--text-regular); border: 1px solid var(--border-lighter);';
+    return 'background: var(--primary-soft-bg); color: var(--primary);';
+  }
+
+  // ========== 4 件套渲染（与收件箱-销售跟进中 对齐） ==========
+  function render4SetBlocks(p) {
+    // 1) AI 智能总结
+    const aiSummaryText = p.aiSummary || p.summary || '暂无 AI 总结';
+    const aiSummary = '<div class="profile-section ai4set-section">' +
+      '<div class="profile-section-title">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><path d="M12 2L9 9l-7 .8 5.2 4.7L5.4 22 12 18l6.6 4-1.8-7.5L22 9.8 15 9z"/></svg>' +
+        ' 当前用户 · CAVi 智能总结' +
+      '</div>' +
+      '<div style="font-size:12px; color: var(--text-regular); line-height: 1.6;">' + esc(aiSummaryText) + '</div>' +
+    '</div>';
+
+    // 2) 推荐话术
+    const scripts = (p.recommendedScripts || [
+      { tag: '破冰', body: 'Hola, soy Maria de AutoCava. ¿Sigue interesado en el Tiguan? Le aviso que tenemos una promoción válida esta semana.' },
+      { tag: '跟进', body: 'Le reservé el espacio para que vea el Tiguan este sábado. ¿Le confirmo a las 11:00 AM?' },
+      { tag: '逼单', body: 'Tenemos 2 unidades en el color que le gustó. Si confirma hoy, le aseguro el inventario y el financiamiento.' }
+    ]);
+    const scriptList = scripts.map(function (s) {
+      return '<div class="script-item" data-copy="' + esc(s.body).replace(/"/g, '&quot;') + '">' +
+        '<span class="script-tag">' + esc(s.tag) + '</span>' +
+        '<div class="script-body">' + esc(s.body) + '</div>' +
+        '<span class="script-copy">点击复制</span>' +
+      '</div>';
+    }).join('');
+    const scriptSection = '<div class="profile-section ai4set-section">' +
+      '<div class="profile-section-title">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+        ' 推荐话术 · ' + scripts.length + ' 条' +
+      '</div>' +
+      '<div class="script-list">' + scriptList + '</div>' +
+    '</div>';
+
+    // 3) 用户画像（含关注车型 + Agent 记忆偏好）
+    const profile = p.userProfile || {
+      language: '西语',
+      occupation: '工程师', familyStatus: '已婚 · 1 孩',
+      purchaseType: '首次购车', decisionMaker: '本人',
+      region: 'CDMX · Polanco', interests: 'SUV / 安全配置',
+      brandPrefs: '', seriesInterest: '', bodyType: '', energyType: '',
+      fullBudget: '', downPayment: '', monthlyBudget: ''
+    };
+    const profileFields = [
+      { label: '车系', value: p.car || profile.car, link: true },
+      { label: '品牌', value: p.brand || profile.brand },
+      { label: '月供预算', value: p.budget || profile.monthlyBudget || profile.budget },
+      { label: '语言', value: profile.language },
+      { label: '职业', value: profile.occupation },
+      { label: '家庭', value: profile.familyStatus },
+      { label: '地区', value: profile.region },
+      { label: '购车类型', value: profile.purchaseType },
+      { label: '决策人', value: profile.decisionMaker },
+      { label: '品牌偏好 Top3', value: profile.brandPrefs },
+      { label: '车系兴趣', value: profile.seriesInterest },
+      { label: '车身类型', value: profile.bodyType },
+      { label: '能源类型', value: profile.energyType },
+      { label: '全款预算', value: profile.fullBudget },
+      { label: '首付占比', value: profile.downPayment },
+      { label: '月供区间', value: profile.monthlyBudget },
+      { label: '关注点', value: profile.interests }
+    ].filter(function (f) { return f.value; });
+    const profileGrid = profileFields.map(function (f) {
+      const valCls = f.link ? 'profile-field-value link' : 'profile-field-value';
+      return '<div><div class="profile-field-label">' + esc(f.label) + '</div>' +
+        '<div class="' + valCls + '">' + esc(f.value) + '</div></div>';
+    }).join('');
+
+    function renderTagCloud(list) {
+      if (!list || !list.length) return '';
+      return list.map(function (t) {
+        const label = typeof t === 'string' ? t : t.t;
+        const style = typeof t === 'object' && t.c ? ' style="' + tagColor(t.c) + '"' : '';
+        return '<span class="profile-tag"' + style + '>' + esc(label) + '</span>';
+      }).join('');
+    }
+    const statusTagsHtml = renderTagCloud(p.tags);
+    const prefTagsHtml = renderTagCloud(p.preferenceTags);
+    const tagsRow = statusTagsHtml
+      ? '<div style="margin-top:10px; padding-top:10px; border-top: 1px dashed var(--border-lighter);">' +
+          '<div class="profile-field-label" style="margin-bottom:6px;">状态标签</div>' +
+          '<div class="profile-tag-cloud">' + statusTagsHtml + '</div>' +
+        '</div>'
+      : '';
+    const profileSection = '<div class="profile-section ai4set-section">' +
+      '<div class="profile-section-title">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1c0-3 3-5 8-5s8 2 8 5v1"/></svg>' +
+        ' 用户画像' +
+      '</div>' +
+      '<div class="user-profile-grid">' + profileGrid + '</div>' +
+      tagsRow +
+    '</div>';
+
+    // 4) 下一步建议
+    const nextSteps = p.nextSteps || [
+      { level: 'normal', text: '本周内主动电话跟进，确认试驾时间' },
+      { level: 'warn', text: '客户已 36h 未回复，建议今早 push WhatsApp' },
+      { level: 'critical', text: '若今晚仍未回，启动暂缓 / 再激活策略' }
+    ];
+    const stepsHtml = nextSteps.map(function (s, i) {
+      const numClass = s.level === 'critical' ? 'critical' : (s.level === 'warn' ? 'warn' : '');
+      return '<div class="next-step-item">' +
+        '<span class="step-num ' + numClass + '">' + (i + 1) + '</span>' +
+        '<span>' + esc(s.text) + '</span>' +
+      '</div>';
+    }).join('');
+    const nextStepsSection = '<div class="profile-section ai4set-section">' +
+      '<div class="profile-section-title">' +
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;"><polyline points="9 18 15 12 9 6"/></svg>' +
+        ' 下一步建议' +
+      '</div>' +
+      '<div class="next-steps">' + stepsHtml + '</div>' +
+    '</div>';
+
+    return aiSummary + scriptSection + profileSection + nextStepsSection;
+  }
+
+  // CAVi 入口（右下角悬浮按钮）
+  function renderCaviEntry(p) {
+    var existing = document.getElementById('caviFab');
+    if (existing) existing.remove();
+    var fab = document.createElement('a');
+    fab.id = 'caviFab';
+    fab.className = 'cavi-fab';
+    fab.href = '知识库(cavi).html?ctx=' + encodeURIComponent(p.name || '');
+    fab.title = '随时问 CAVi 拿答案';
+    fab.innerHTML =
+      '<span class="fab-icon">' +
+        '<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>' +
+      '</span>' +
+      '<span>问 CAVi 拿答案</span>' +
+      '<span class="fab-arrow">→</span>';
+    document.body.appendChild(fab);
+    return '';
+  }
+
+  // 推荐话术点击复制
+  document.addEventListener('click', function (e) {
+    var item = e.target.closest('.script-item[data-copy]');
+    if (!item) return;
+    var text = item.getAttribute('data-copy');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        var copyEl = item.querySelector('.script-copy');
+        if (copyEl) {
+          var orig = copyEl.textContent;
+          copyEl.textContent = '已复制 ✓';
+          setTimeout(function () { copyEl.textContent = orig; }, 1200);
+        }
+      }).catch(function () { /* fallback: 忽略 */ });
+    }
+  });
+
+  // ─── Stage/Group 判断 + Tab 数字动态计算 ────────────────────────
+  // 重构(2026-09-06):4 个页面共用同一份 13 个场景数据,Tab 数字与会话列表
+  // 都从 window.WINDOW_SCENARIOS 动态算/过滤。Tab 数字跨页面保持一致。
+  function getStage(s) {
+    var t = (s.list && s.list.tagsHtml) || '';
+    if (t.indexOf('conv-tag-stage-handoff') !== -1 || t.indexOf('待销售接管') !== -1) return 'handoff';
+    if (t.indexOf('销售跟进中') !== -1) return 'sales';
+    return 'ai';
+  }
+  // getGroup 兜底:从 tagsHtml 推断 lost/defer/active
+  function getGroup(s) {
+    if (s.group) return s.group;  // 数据已有 group 字段(优先)
+    var t = (s.list && s.list.tagsHtml) || '';
+    if (t.indexOf('已战败') !== -1 || t.indexOf('失活') !== -1) return 'lost';
+    if (t.indexOf('暂缓') !== -1) return 'defer';
+    return 'active';
+  }
+
+  function renderTopTabs() {
+    var counts = { all: SCENARIOS.length, ai: 0, handoff: 0, sales: 0 };
+    SCENARIOS.forEach(function (s) { counts[getStage(s)]++; });
+    ['all','ai','handoff','sales'].forEach(function (stage) {
+      var tab = document.querySelector('.top-tab[data-stage="' + stage + '"]');
+      if (!tab) return;
+      var num = tab.querySelector('.top-tab-count');
+      if (num && num.getAttribute('data-auto') === 'true') num.textContent = counts[stage];
+    });
+  }
+
+  function renderList() {
+    const root = document.getElementById('convItems');
+    const parts = [];
+    let section = null;
+    // AI 跟进中页面:只显示 stage='ai' 的场景
+    SCENARIOS.filter(function (s) { return getStage(s) === 'ai'; }).forEach(function (s) {
+      if (getGroup(s) === 'lost' && section !== 'lost') {
+        section = 'lost';
+        parts.push(
+          '<div class="conv-section-divider">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>' +
+          '<span>战败 / 失活 · 待销售确认关闭</span><span class="conv-section-count">2</span></div>'
+        );
+      }
+      if (getGroup(s) === 'defer' && section !== 'defer') {
+        section = 'defer';
+        parts.push(
+          '<div class="conv-section-divider" style="background: #FFFBE6;">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+          '<span>暂缓 · 再激活</span><span class="conv-section-count" style="background: var(--warning);">1</span></div>'
+        );
+      }
+      const L = s.list;
+      const cls = 'conv-item' + (L.itemClass ? ' ' + L.itemClass : '');
+      const style = L.itemStyle ? ' style="' + L.itemStyle + '"' : '';
+      const avStyle = L.avatarStyle ? ' style="' + L.avatarStyle + '"' : '';
+      const avCls = 'conv-avatar' + (L.itemClass === 'is-lost' && !L.avatarStyle ? ' is-lost' : '');
+      const timeStyle = L.timeStyle ? ' style="' + L.timeStyle + '"' : '';
+      const badge = L.badge ? '<span class="conv-badge">' + esc(L.badge) + '</span>' : '';
+      parts.push(
+        '<div class="' + cls + '" data-id="' + s.id + '"' + style + '>' +
+          '<div class="' + avCls + '"' + avStyle + '>' + esc(L.initials) + '</div>' +
+          '<div class="conv-body">' +
+            '<div class="conv-row1"><span class="conv-name">' + esc(L.name) + '</span><span class="conv-time"' + timeStyle + '>' + esc(L.time) + '</span></div>' +
+            '<div class="conv-row2"><span class="conv-preview">' + esc(L.preview) + '</span>' + badge + '</div>' +
+            '<div class="conv-meta">' + L.tagsHtml + '</div>' +
+          '</div></div>'
+      );
+    });
+    root.innerHTML = parts.join('');
+    root.querySelectorAll('.conv-item[data-id]').forEach(function (el) {
+      el.addEventListener('click', function () { selectScenario(el.getAttribute('data-id')); });
+    });
+  }
+
+  function renderMessages(s) {
+    const stream = document.getElementById('chatStream');
+    const chunks = [];
+    if (s.banner) {
+      const b = s.banner;
+      const variantCls = b.variant === 'defer' ? ' banner-defer' : '';
+      const actions = (b.actions || []).map(function (a) {
+        if (a.href) {
+          return '<a class="btn-link' + (a.claim ? ' btn-claim' : '') + '" href="' + esc(a.href) + '">' + esc(a.label) + '</a>';
+        }
+        return '<button class="btn-link" type="button">' + esc(a.label) + '</button>';
+      }).join('');
+      chunks.push(
+        '<div class="ai-handoff-banner' + variantCls + '">' +
+          '<div class="ai-handoff-banner-close" title="收起">×</div>' +
+          '<div class="ai-handoff-banner-title">' + esc(b.title) + '</div>' +
+          '<div class="ai-handoff-banner-meta"><span class="ai-handoff-banner-meta-item"><span>' + esc(b.meta) + '</span></span></div>' +
+          '<div class="ai-handoff-banner-text" style="margin-bottom:0;">💡 <strong>AI 建议：</strong>' + esc(b.advice) + '</div>' +
+          '<div class="ai-handoff-banner-actions">' + actions + '</div>' +
+        '</div>'
+      );
+    }
+    (s.messages || []).forEach(function (m) {
+      if (m.type === 'day') {
+        chunks.push('<div class="chat-day-divider">' + esc(m.text) + '</div>');
+      } else if (m.type === 'out') {
+        chunks.push(
+          '<div class="msg-row outbound ai"><div class="msg-avatar ai">' + AI_AVATAR + '</div><div class="msg-body">' +
+          '<div class="msg-meta"><span class="msg-sender">CAVi Bot</span><span class="msg-tag msg-tag-ai">' + esc(m.tag) + '</span><span>' + esc(m.time) + '</span></div>' +
+          '<div class="msg-bubble">' + nl(m.text) + '</div>' +
+          (m.status ? '<div class="msg-status">' + esc(m.status) + '</div>' : '') +
+          '</div></div>'
+        );
+      } else if (m.type === 'in') {
+        chunks.push(
+          '<div class="msg-row"><div class="msg-avatar customer">' + esc(m.initials) + '</div><div class="msg-body">' +
+          '<div class="msg-meta"><span class="msg-sender">' + esc(m.name) + '</span><span>' + esc(m.time) + '</span></div>' +
+          '<div class="msg-bubble">' + nl(m.text) + '</div></div></div>'
+        );
+      } else if (m.type === 'system') {
+        chunks.push(
+          '<div class="msg-row system"><div class="msg-body" style="flex:1;">' +
+          '<div class="msg-bubble">' + esc(m.text) + '</div>' +
+          (m.status ? '<div class="msg-status">' + esc(m.status) + '</div>' : '') +
+          '</div></div>'
+        );
+      }
+    });
+    stream.innerHTML = chunks.join('');
+    const closeBtn = stream.querySelector('.ai-handoff-banner-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function () {
+        const ban = stream.querySelector('.ai-handoff-banner');
+        if (ban) ban.style.display = 'none';
+      });
+    }
+    stream.scrollTop = 0;
+  }
+
+  function renderProfile(s) {
+    const p = s.profile;
+    const steps = (p.steps || []).map(function (st) {
+      return '<div class="task-step ' + st.state + '"><div class="task-step-dot"></div><div class="task-step-body">' +
+        '<div class="task-step-name">' + esc(st.name) + '</div>' +
+        '<div class="task-step-time">' + esc(st.time) + '</div></div></div>';
+    }).join('');
+    const h = p.handoff;
+    let handoffHtml = '';
+    if (h) {
+      handoffHtml =
+        '<div class="task-handoff ' + esc(h.state || 'idle') + '">' +
+          '<div class="task-handoff-kicker">特殊出口 · 非主路径步骤</div>' +
+          '<div class="task-handoff-title">' + esc(h.title || '转人工') + '</div>' +
+          '<div class="task-handoff-time">' + esc(h.time || '') + '</div>' +
+        '</div>';
+    }
+    const stepper = steps
+      ? '<div class="profile-section"><div class="profile-section-title">AI 任务进度</div>' +
+        '<div class="ai-task-stepper">' + steps + '</div>' + handoffHtml + '</div>'
+      : '';
+    document.getElementById('profilePanel').innerHTML =
+      '<div class="profile-header">' +
+        '<div class="profile-avatar">' + esc(p.initials) + '</div>' +
+        '<div class="profile-name">' + esc(p.name) + '</div>' +
+        '<div class="profile-phone">' + esc(p.phone) + '</div>' +
+      '</div>' +
+      stepper +
+      render4SetBlocks(p) +
+      '<div class="profile-section"><div class="profile-section-title">跟进状态</div>' +
+        '<div class="profile-field"><span class="profile-field-label">当前状态</span><span class="profile-field-value"><span class="profile-tag" style="background: var(--primary-soft-bg); color: var(--primary);">' + esc(p.status) + '</span></span></div>' +
+        '<div class="profile-field"><span class="profile-field-label">24h 窗口</span><span class="profile-field-value">' + esc(p.window) + '</span></div>' +
+        '<div class="profile-field"><span class="profile-field-label">资料状态</span><span class="profile-field-value">' + esc(p.docs) + '</span></div>' +
+        '<div class="profile-field"><span class="profile-field-label">最近联系</span><span class="profile-field-value">' + esc(p.last) + '</span></div>' +
+        '<div class="profile-field"><span class="profile-field-label">线索来源</span><span class="profile-field-value">' + esc(p.source) + '</span></div></div>' +
+      precheckBlock(p.precheck) +
+      reviewBlock(p.review);
+    renderCaviEntry(p);
+  }
+
+  function selectScenario(id) {
+    const s = byId[id];
+    if (!s) return;
+    document.querySelectorAll('.conv-item[data-id]').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-id') === id);
+    });
+    const h = s.header;
+    document.getElementById('chatName').textContent = h.name;
+    const win = document.getElementById('chatWindow');
+    win.className = 'window-indicator ' + (h.windowClass || '');
+    win.textContent = h.windowText;
+    document.getElementById('chatRound').textContent = h.round;
+    document.getElementById('chatSubhint').textContent = h.subhint;
+    const hint = document.getElementById('inputHint');
+    hint.innerHTML = s.inputHint;
+    hint.classList.toggle('input-hint-warn', !!s.inputHintWarn);
+    renderMessages(s);
+    renderProfile(s);
+    try { history.replaceState(null, '', '#' + id); } catch (e) {}
+  }
+
+  renderTopTabs();
+  renderList();
+  const hash = (location.hash || '').replace(/^#/, '');
+  selectScenario(byId[hash] ? hash : 's6');
+})();
+</script>
+
+
+<script>
+(function () {
+  var KEY = 'autocava_admin_sidebar_collapsed';
+  var layout = document.querySelector('.layout');
+  var btn = document.getElementById('sidebarToggle');
+  if (!layout || !btn) return;
+  function apply(collapsed) {
+    layout.classList.toggle('sidebar-collapsed', !!collapsed);
+    btn.title = collapsed ? '展开侧栏' : '收起侧栏';
+    btn.setAttribute('aria-label', btn.title);
+    try { localStorage.setItem(KEY, collapsed ? '1' : '0'); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  apply(saved === null ? false : saved === '1');
+  btn.addEventListener('click', function () {
+    apply(!layout.classList.contains('sidebar-collapsed'));
+  });
+})();
+</script>
+
+</body>
+</html>

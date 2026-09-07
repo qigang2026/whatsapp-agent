@@ -1,0 +1,1277 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>线索详情 · 销售工作台</title>
+<style>
+  /* ============================================================
+     04-admin 销售工作台 · 线索详情
+     规范：visual-specs/04-admin (Element UI 风)
+     说明：本文件用于 Figma html-to-design 插件还原
+     - 单文件 Vanilla HTML + CSS
+     - 不写后端、不写 JS 交互
+     - 布局：200px 侧栏（含 AUTOCAVA 真实 Logo + 多级折叠菜单）
+            + 顶部 Header + 内容区 + 右侧跟踪面板
+     - 侧栏与真实业务后台保持一致（Logo / 菜单结构 / active 态）
+     - 唯一外链：AUTOCAVA 官方 Logo CDN（https://cdn.autocava.com.mx/...）
+     ============================================================ */
+
+  :root {
+    --sidebar-bg: #314256;
+    --sidebar-logo-bg: #2B2F3A;
+    --sidebar-hover: #2A3548;
+    --submenu-bg: #2A3548;
+    --submenu-active-bg: #35414F;
+    --sidebar-text: #BECBDB;
+    --sidebar-text-active: #419EFE;
+
+    --bg-main: #fff;
+    --header-bg: #fff;
+    --header-border: #EBEEF5;
+    --row-hover: #FAFAFC;
+
+    --primary: #419EFE;
+    --primary-soft-bg: #E8F4FE;
+    --success: #67C23A;
+    --warning: #E6A23C;
+    --warning-soft-bg: #FAECD8;
+    --danger: #F56C6C;
+    --danger-soft-bg: #FEF0F0;
+    --purple: #7C4DFF;
+    --purple-soft-bg: #EDE7FF;
+    --info: #909399;
+
+    --border: #DCDFE6;
+    --border-light: #F0F2F5;
+    --border-lighter: #E4E7ED;
+
+    --text-main: #303133;
+    --text-regular: #606266;
+    --text-secondary: #909399;
+    --text-placeholder: #C0C4CC;
+    --text-inverse: #fff;
+    --text-muted-deep: #5A6675;
+
+    --sidebar-width: 225px;
+    --logo-height: 56px;
+    --header-height: 46px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+                 "Helvetica Neue", "Hiragino Sans GB", "Microsoft YaHei",
+                 "微软雅黑", "Source Han Sans CN", "Noto Sans CJK SC",
+                 Arial, sans-serif;
+    font-size: 13px;
+    color: var(--text-main);
+    background: #F5F7FA;
+    min-width: 1440px;
+  }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ========== 整体 3 区布局 ========== */
+  .layout {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    min-height: 100vh;
+  }
+
+  /* ========== 侧栏（与真实业务后台保持一致） ========== */
+  .sidebar {
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+  }
+  /* Logo 区 —— 用 AUTOCAVA 真实品牌图 */
+  .sidebar-logo {
+    height: var(--logo-height);
+    background: var(--sidebar-logo-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    color: #fff;
+  }
+  .sidebar-logo img {
+    height: 30px;
+    width: auto;
+    display: block;
+  }
+
+  /* 菜单 */
+  .menu { padding: 6px 0; flex: 1; overflow-y: auto; }
+
+  /* 一级菜单 */
+  .menu-item {
+    height: 38px;
+    display: flex; align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    color: #CFD3DC;
+    font-size: 13px;
+    cursor: pointer;
+    position: relative;
+  }
+  .menu-item:hover { color: #fff; }
+  .menu-item .icon {
+    width: 16px; height: 16px;
+    opacity: 0.85;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .menu-item .arrow {
+    margin-left: auto;
+    font-size: 10px;
+    opacity: 0.7;
+    transition: transform 0.15s;
+  }
+  .menu-item.expanded .arrow {
+    transform: rotate(0deg);
+  }
+
+  /* 二级子菜单 */
+  .submenu {
+    background: var(--submenu-bg);
+  }
+  .submenu-item {
+    height: 34px;
+    display: flex; align-items: center;
+    padding: 0 16px 0 44px;
+    gap: 8px;
+    color: #B8BFCC;
+    font-size: 13px;
+    cursor: pointer;
+    position: relative;
+  }
+  .submenu-item:hover { color: #fff; }
+  .submenu-item .icon {
+    width: 14px; height: 14px;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+  /* active 态：蓝色文字 + 左侧 3px 蓝色条 */
+  .submenu-item.active {
+    color: var(--primary);
+    background: var(--submenu-active-bg);
+  }
+  .submenu-item.active::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--primary);
+  }
+
+  /* ========== 主区域 ========== */
+  .main { background: #F5F7FA; display: flex; flex-direction: column; min-width: 0; }
+
+  /* 顶部 Header */
+  .header {
+    height: var(--header-height);
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--header-border);
+    display: flex; align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+  }
+  .breadcrumb { font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+  .breadcrumb .home { color: var(--primary); }
+  .breadcrumb .current { color: var(--text-main); }
+  .breadcrumb .sep { margin: 0 8px; color: var(--text-placeholder); }
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+  .header-icon-btn {
+    width: 22px; height: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text-regular);
+    cursor: pointer;
+  }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 4px;
+    background: var(--text-muted-deep);
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+  }
+  .header-user { font-size: 13px; color: var(--text-regular); }
+
+  /* 详情容器 */
+  .detail-wrap { padding: 10px 20px 14px; }
+
+  /* 顶部 ID 行 */
+  .detail-topbar {
+    display: flex; align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid var(--header-border);
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .detail-topbar .label { color: var(--text-secondary); margin-right: 6px; }
+  .detail-topbar .value { color: var(--text-main); font-weight: 500; }
+
+  /* 详情面板 */
+  .detail-panel {
+    background: #fff;
+    border: 1px solid var(--header-border);
+    border-radius: 4px;
+    padding: 0;
+    overflow: hidden;
+  }
+  .panel-tabs-row {
+    display: flex; align-items: center;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    background: #FAFBFC;
+    gap: 8px;
+  }
+  .tab-btn {
+    height: 26px;
+    padding: 0 14px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: var(--text-regular);
+    background: #fff;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    display: inline-flex; align-items: center;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover {
+    color: var(--primary);
+    border-color: #B6DDFB;
+  }
+  .tab-btn.active {
+    color: var(--primary);
+    background: var(--primary-soft-bg);
+    border-color: #B6DDFB;
+    font-weight: 500;
+  }
+  .tab-star {
+    width: 26px; height: 26px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #E6A23C;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    background: #fff;
+    transition: color 0.15s;
+  }
+  .tab-star:hover { color: #F56C6C; }
+  .panel-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .btn-update {
+    height: 26px; padding: 0 14px;
+    background: var(--primary); color: #fff;
+    border: none; border-radius: 3px;
+    font-size: 12px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    transition: opacity 0.15s;
+  }
+  .btn-update:hover { opacity: 0.88; }
+  .track-link {
+    font-size: 13px; color: var(--primary);
+    display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none;
+  }
+  .track-link:hover { text-decoration: underline; }
+  .track-link .badge-new {
+    background: var(--danger); color: #fff;
+    font-size: 10px; padding: 1px 5px;
+    border-radius: 2px;
+    line-height: 1;
+    font-weight: 600;
+  }
+
+  /* 分组 */
+  .group {
+    padding: 14px 18px 14px;
+    border-bottom: 1px solid var(--header-border);
+  }
+  .group:last-child { border-bottom: none; }
+  .group-title {
+    font-size: 14px; font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 10px;
+    padding-left: 8px;
+    border-left: 3px solid var(--primary);
+    line-height: 1.2;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 8px;
+    column-gap: 32px;
+  }
+  .field {
+    display: flex;
+    align-items: baseline;
+    font-size: 13px;
+    line-height: 22px;
+    min-width: 0;
+  }
+  .field-label {
+    color: var(--text-secondary);
+    width: 96px;
+    flex-shrink: 0;
+  }
+  .field-value {
+    color: var(--text-main);
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+  }
+
+  /* Pill 标签 */
+  .pill {
+    display: inline-flex; align-items: center;
+    height: 22px;
+    padding: 0 10px;
+    border-radius: 11px;
+    font-size: 12px;
+    line-height: 1;
+  }
+  .pill-info  { background: var(--primary-soft-bg); color: var(--primary); border: 1px solid #B6DDFB; }
+  .pill-warn  { background: var(--warning-soft-bg); color: var(--warning); }
+  .pill-muted { color: var(--text-placeholder); }
+
+  /* ========== 详情面板 + 跟踪记录 双栏 ========== */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .track-panel {
+    background: #fff;
+    border: 1px solid var(--header-border);
+    border-radius: 4px;
+    padding: 14px 14px;
+    display: flex;
+    flex-direction: column;
+  }
+  .track-panel-title {
+    display: flex; align-items: center;
+    font-size: 13px; font-weight: 600;
+    margin-bottom: 10px;
+  }
+  /* CAVi 跟进按钮（兼容老 CSS 命名） */
+  .cavi-btn {
+    margin-left: auto;
+    height: 26px;
+    padding: 0 12px;
+    border-radius: 3px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex; align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s;
+    text-decoration: none;
+  }
+  .cavi-btn:hover { opacity: 0.88; color: #fff; text-decoration: none; }
+  .cavi-btn .cavi-icon {
+    width: 14px; height: 14px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .cavi-btn-link { text-decoration: none; }
+  .cavi-btn-arrow { font-size: 14px; line-height: 1; margin-left: 2px; }
+
+  /* ========== AI 跟进记录 Timeline ========== */
+  .ai-track-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ai-track-summary {
+    background: linear-gradient(135deg, #F8FAFF 0%, #F0F7FF 100%);
+    border: 1px solid #DCE9FD;
+    border-radius: 4px;
+    padding: 10px 12px;
+  }
+  .ai-track-one-line-summary {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--text-regular);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .ai-track-one-line-summary strong {
+    color: var(--primary);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .ai-track-one-line-summary span {
+    color: var(--text-main);
+  }
+  .ai-track-stage {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .ai-track-stage-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  .ai-track-stage-tag.done { background: #E1F3D8; color: #67C23A; }
+  .ai-track-stage-tag.active { background: #EDE7FF; color: #7C4DFF; }
+  .ai-track-stage-tag.pending { background: #F2F3F5; color: #909399; }
+  .ai-track-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .ai-track-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ai-track-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .dot-green { background: var(--success); }
+  .dot-purple { background: #7C4DFF; }
+  .dot-gray { background: #C0C4CC; }
+
+  /* Timeline 事件 */
+  .ai-track-events {
+    position: relative;
+    padding-left: 14px;
+  }
+  .ai-track-events::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: var(--border-light);
+  }
+  .ai-track-event {
+    position: relative;
+    padding-bottom: 14px;
+  }
+  .ai-track-event:last-child { padding-bottom: 0; }
+  .ai-track-event-dot {
+    position: absolute;
+    left: -14px;
+    top: 4px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--border-light);
+    background: #fff;
+    z-index: 1;
+  }
+  .ai-track-event-dot.done { background: var(--success); border-color: var(--success); }
+  .ai-track-event-dot.active { background: #7C4DFF; border-color: #7C4DFF; box-shadow: 0 0 0 3px rgba(124,77,255,0.15); }
+  .ai-track-event-dot.pending { background: var(--bg-main); border-color: var(--border); }
+  .ai-track-event-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ai-track-event-key .ai-track-event-body {
+    background: linear-gradient(135deg, #FFF7E6 0%, #FFFBE6 100%);
+    border: 1px solid #FFD591;
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-left: 8px;
+  }
+  .ai-track-event-pending .ai-track-event-body {
+    background: #FAFAFC;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-left: 8px;
+  }
+  .ai-track-event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .ai-track-event-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .ai-track-event-pending .ai-track-event-title { color: var(--text-secondary); font-weight: 500; }
+  .ai-track-event-time {
+    font-size: 11px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .ai-track-event-detail {
+    font-size: 11px;
+    color: var(--text-regular);
+    line-height: 1.5;
+  }
+  .ai-track-event-detail strong { color: var(--text-main); font-weight: 600; }
+  .ai-track-event-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 2px;
+  }
+  .stat-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    background: #F4F4F5;
+    color: var(--text-regular);
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .stat-tag-green { background: #E1F3D8; color: #67C23A; }
+  .stat-tag-red { background: #FDE2E2; color: #F56C6C; font-weight: 600; }
+  .stat-tag-purple { background: #EDE7FF; color: #7C4DFF; }
+
+  /* close-x 按钮（详情面板 Tab 行尾） */
+  .close-x {
+    width: 24px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    font-size: 18px; line-height: 1;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  .close-x:hover { background: #F5F7FA; }
+
+  /* 链接 value（蓝色） */
+  .field-value.link { color: var(--primary); }
+
+  /* ========== 信审进度时间线（v3 · 阶段分组 + 关键节点高亮）========== */
+  .precheck-timeline {
+    position: relative;
+    padding: 0;
+    margin-top: 10px;
+  }
+
+  /* 阶段分组容器 */
+  .precheck-stage {
+    margin-bottom: 12px;
+  }
+  .precheck-stage:last-child { margin-bottom: 0; }
+
+  /* 阶段标题 */
+  .precheck-stage-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .precheck-stage-title.done    { background: #E1F3D8; color: var(--success); }
+  .precheck-stage-title.active  { background: #EDE7FF; color: var(--purple); }
+  .precheck-stage-title.pending { background: #F2F3F5; color: var(--text-secondary); }
+
+  /* 节点列表 */
+  .precheck-stage-list {
+    position: relative;
+    padding-left: 16px;
+    list-style: none;
+    margin: 0;
+  }
+  .precheck-stage-list::before {
+    content: '';
+    position: absolute;
+    left: 5px; top: 8px; bottom: 8px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  /* 单个节点 */
+  .precheck-node {
+    position: relative;
+    padding: 6px 0 8px;
+    list-style: none;
+  }
+  .precheck-node:last-child { padding-bottom: 0; }
+  .precheck-node-dot {
+    position: absolute;
+    left: -16px; top: 9px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px var(--border);
+    background: var(--info);
+  }
+  .precheck-node-dot.blue   { background: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+  .precheck-node-dot.green  { background: var(--success); box-shadow: 0 0 0 1px var(--success); }
+  .precheck-node-dot.red    { background: var(--danger);  box-shadow: 0 0 0 1px var(--danger); }
+  .precheck-node-dot.yellow { background: var(--warning); box-shadow: 0 0 0 1px var(--warning); }
+  .precheck-node-dot.gray   { background: var(--info);    box-shadow: 0 0 0 1px var(--info); }
+
+  .precheck-node-time {
+    font-size: 11px;
+    color: var(--text-placeholder);
+    line-height: 1.4;
+    margin-bottom: 2px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .precheck-node-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .precheck-node-label {
+    font-size: 12px;
+    color: var(--text-regular);
+    line-height: 1.5;
+  }
+  .precheck-node-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+  .precheck-node-tag.blue   { background: var(--primary-soft-bg); color: var(--primary); }
+  .precheck-node-tag.green  { background: #E1F3D8;                color: var(--success); }
+  .precheck-node-tag.red    { background: var(--danger-soft-bg);  color: var(--danger); }
+  .precheck-node-tag.yellow { background: var(--warning-soft-bg); color: var(--warning); }
+  .precheck-node-tag.gray   { background: #F2F3F5;                color: var(--info); }
+  .precheck-node-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+
+  /* 关键节点（approved / 已读未回 等决策点）—— 高亮 + 卡片化 */
+  .precheck-node-key {
+    background: linear-gradient(135deg, #FFF7E6 0%, #FFFBE6 100%);
+    border: 1px solid #FFD591;
+    border-radius: 4px;
+    padding: 8px 10px 8px 12px;
+    margin: 4px -8px 6px;
+  }
+  .precheck-node-key .precheck-node-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .precheck-node-key .precheck-node-time {
+    color: var(--warning);
+    font-weight: 500;
+  }
+  .precheck-node-key .precheck-node-dot {
+    /* dot 已被 padding 覆盖在卡片外 */
+    left: -20px;
+  }
+
+  .precheck-timeline-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+  }
+  .precheck-timeline-actions a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-size: 12px;
+    color: var(--text-regular);
+    background: #fff;
+    text-decoration: none;
+  }
+  .precheck-timeline-actions a:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .precheck-timeline-actions a.primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .precheck-timeline-actions a.primary:hover {
+    background: var(--primary);
+    color: #fff;
+    opacity: 0.88;
+  }
+
+
+  /* ========== 侧栏收起 ========== */
+  .sidebar {
+    position: relative;
+    width: var(--sidebar-width);
+    transition: width 0.2s ease;
+    overflow: visible;
+  }
+  .layout {
+    transition: grid-template-columns 0.2s ease;
+  }
+  .sidebar-toggle {
+    position: absolute;
+    top: 64px;            /* ⭐ 从 Logo 区下方开始，避免被压在 Logo 上 */
+    right: -12px;
+    z-index: 50;          /* ⭐ 提高 z-index，确保浮在内容之上 */
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--text-secondary);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.10);   /* ⭐ 阴影加深，浮起感更明显 */
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: color .15s, border-color .15s;
+  }
+  .sidebar-toggle:hover {
+    color: var(--primary, #419EFE);
+    border-color: var(--primary, #419EFE);
+  }
+  .sidebar-toggle svg {
+    width: 12px;
+    height: 12px;
+    transition: transform .2s ease;
+  }
+  .layout.sidebar-collapsed {
+    --sidebar-width: 56px;
+  }
+  .layout.sidebar-collapsed .sidebar-toggle svg {
+    transform: rotate(180deg);
+  }
+  .layout.sidebar-collapsed .sidebar-logo {
+    padding: 0 6px;
+  }
+  .layout.sidebar-collapsed .sidebar-logo img {
+    height: 28px;
+    max-width: 100%;
+    object-fit: contain;
+  }
+  .layout.sidebar-collapsed .menu-item > span,
+  .layout.sidebar-collapsed .menu-item .arrow,
+  .layout.sidebar-collapsed .submenu-item > span {
+    display: none !important;
+  }
+  /* 收起后让一级菜单的图标仍可见(用 tooltip hover 显示完整名,这里至少留图标) */
+  .layout.sidebar-collapsed .menu-item .icon {
+    display: inline-block !important;
+    width: 18px !important;
+    height: 18px !important;
+    opacity: 0.85;
+  }
+  /* 收起后仍露出当前激活的子菜单图标 */
+  .layout.sidebar-collapsed .submenu {
+    display: block !important;
+    background: transparent;
+    padding: 0;
+  }
+  .layout.sidebar-collapsed .submenu-item:not(.active) {
+    display: none !important;
+  }
+  .layout.sidebar-collapsed .submenu-item.active {
+    display: flex !important;
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .layout.sidebar-collapsed .menu-item,
+  .layout.sidebar-collapsed .submenu-item {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .layout.sidebar-collapsed .menu-item .icon,
+  .layout.sidebar-collapsed .submenu-item .icon {
+    margin: 0;
+  }
+  .layout.sidebar-collapsed .menu {
+    padding-top: 8px;
+  }
+
+
+
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ========== 侧栏（与真实业务后台一致） ========== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="https://cdn.autocava.com.mx/_nuxt/asset/logo.v3.mLItLIXo.svg"
+           alt="AutoCava" />
+    </div>
+    <button type="button" class="sidebar-toggle" id="sidebarToggle" title="收起/展开侧栏" aria-label="收起侧栏">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+
+
+    <div class="menu">
+
+      <!-- 金融订单（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/></svg>
+        <span>金融订单</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 网站管理（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
+        <span>网站管理</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 车型库（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h14l-1.5-5h-11z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/><path d="M3 17v-4l3-5h12l3 5v4"/></svg>
+        <span>车型库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 线索库（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>线索库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <a href="WhatsApp-Agent-PC.html" class="menu-item active">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span>WhatsApp Agent</span>
+      </a><!-- 用户管理（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1c0-3 3-5 8-5s8 2 8 5v1"/></svg>
+        <span>用户管理</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 内容库（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+        <span>内容库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 金融产品库（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 1 1 8 0v4"/></svg>
+        <span>金融产品库</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 推荐位管理（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11l-3 3-2-2"/></svg>
+        <span>推荐位管理</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 金融活动（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-7v16L3 13z"/><path d="M11 11v6"/></svg>
+        <span>金融活动</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 口碑管理（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 8.5 22 9.3 17 14 18.5 21 12 17.8 5.5 21 7 14 2 9.3 9 8.5 12 2"/></svg>
+        <span>口碑管理</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- System Monitor（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1c0-3 3-5 8-5s8 2 8 5v1"/></svg>
+        <span>System Monitor</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <!-- 工具箱（折叠） -->
+      <div class="menu-item">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+        <span>工具箱</span>
+        <span class="arrow">▾</span>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ========== 主区域 ========== -->
+  <section class="main">
+
+    <!-- 顶部 Header -->
+    <div class="header">
+      <div class="breadcrumb">
+        <span>跟进线索</span>
+        <span class="sep">/</span>
+        <span class="current">线索详情</span>
+      </div>
+      <div class="header-right">
+        <span class="header-icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+        <span class="header-icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
+        <span class="avatar">L</span>
+        <span class="header-user">销售 · Lisa</span>
+      </div>
+    </div>
+
+    <!-- 详情容器 -->
+    <div class="detail-wrap">
+
+      <!-- 顶部 ID 行 -->
+      <div class="detail-topbar">
+        <div>
+          <span class="label">跟进线索ID</span>
+          <span class="value">1796</span>
+        </div>
+        <div>
+          <span class="label">跟进线索编号</span>
+          <span class="value">2026090169922846</span>
+        </div>
+        <div>
+          <span class="label">主线索ID</span>
+          <span class="value">3469</span>
+        </div>
+        <div>
+          <span class="label">归属销售</span>
+          <span class="value">销售 · Lisa</span>
+        </div>
+        <div>
+          <span class="label">归属门店</span>
+          <span class="value">CDMX · Polanco</span>
+        </div>
+        <div>
+          <span class="label">录入时间</span>
+          <span class="value">2026-09-01 00:48</span>
+        </div>
+      </div><!-- /.detail-topbar -->
+
+      <!-- 双栏：详情面板 + 跟踪记录 -->
+      <div class="detail-grid">
+
+        <!-- 左：详情面板 -->
+        <div class="detail-panel">
+
+          <!-- Tab 行 -->
+          <div class="panel-tabs-row">
+            <button class="tab-btn active">全触(首页)</button>
+            <button class="tab-btn">待跟进</button>
+            <span class="tab-star">★</span>
+
+            <div class="panel-actions">
+              <button class="btn-update">⟳ 更新状态</button>
+              <a class="track-link" href="#">
+                跟踪记录
+                <span class="badge-new">NEW</span>
+              </a>
+              <span class="close-x" title="关闭">×</span>
+            </div>
+          </div>
+
+          <!-- 基本信息 -->
+          <div class="group">
+            <div class="group-title">基本信息</div>
+            <div class="grid">
+              <div class="field">
+                <span class="field-label">线索来源</span>
+                <span class="field-value">AI 对话中预审入口</span>
+              </div>
+              <div class="field">
+                <span class="field-label">线索类型</span>
+                <span class="pill pill-info">全触(留资)</span>
+              </div>
+              <div class="field">
+                <span class="field-label">姓名</span>
+                <span class="field-value">Jose Angel Torres Bernal</span>
+              </div>
+              <div class="field">
+                <span class="field-label">手机号</span>
+                <span class="field-value">8129537135</span>
+              </div>
+              <div class="field">
+                <span class="field-label">邮箱</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">是否注册</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">来源备注</span>
+                <span class="field-value">系统自动</span>
+              </div>
+              <div class="field">
+                <span class="field-label">车辆信息</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">车系</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">品牌</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">车型</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">&nbsp;</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 经销商信息 -->
+          <div class="group">
+            <div class="group-title">经销商信息</div>
+            <div class="grid">
+              <div class="field">
+                <span class="field-label">经销商ID</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">经销商名称</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">州/省份代码</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">州/省份名称</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">城市名称</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">&nbsp;</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">经销商地址</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">&nbsp;</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 线索状态 -->
+          <div class="group">
+            <div class="group-title">线索状态</div>
+            <div class="grid">
+              <div class="field">
+                <span class="field-label">最近跟踪时间(UTC-6)</span>
+                <span class="field-value">2026-09-01 00:48</span>
+              </div>
+              <div class="field">
+                <span class="field-label">跟进状态</span>
+                <span class="pill pill-warn">待跟进</span>
+              </div>
+              <div class="field">
+                <span class="field-label">战败原因</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+              <div class="field">
+                <span class="field-label">首次联系时间(UTC-6)</span>
+                <span class="field-value pill-muted">-</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 右：跟踪记录 -->
+        <aside class="track-panel">
+          <div class="track-panel-title">
+            <span>AI 跟进记录</span>
+          </div>
+
+          <!-- AI 跟进记录：信审进度时间线（v2 · 蓝/绿/红/黄状态徽章） -->
+          <div class="ai-track-timeline" id="precheck-timeline">
+
+            <div class="ai-track-summary">
+              <div class="ai-track-one-line-summary">
+                <strong>📋 信审概况</strong>
+                <span>approved · 已读 2h · 二次提醒已排队 · 预计 9/8 18:50 自动触发</span>
+              </div>
+            </div>
+
+            <!-- 信审状态机时间线（v3 · 阶段分组） -->
+            <ol class="precheck-timeline">
+
+              <!-- 阶段 1：已执行（4 个历史节点） -->
+              <li class="precheck-stage">
+                <span class="precheck-stage-title done">✓ 已执行 · 4 个节点</span>
+                <ul class="precheck-stage-list">
+                  <li class="precheck-node">
+                    <span class="precheck-node-dot blue"></span>
+                    <div class="precheck-node-time">09-07 14:52 (UTC-6)</div>
+                    <div class="precheck-node-row">
+                      <span class="precheck-node-tag blue">预审入口</span>
+                      <span class="precheck-node-label">HSM 推送预审链接</span>
+                    </div>
+                    <div class="precheck-node-meta">hsm_precheck_link_v1 · sent</div>
+                  </li>
+                  <li class="precheck-node">
+                    <span class="precheck-node-dot blue"></span>
+                    <div class="precheck-node-time">09-07 15:30</div>
+                    <div class="precheck-node-row">
+                      <span class="precheck-node-tag blue">in_progress</span>
+                      <span class="precheck-node-label">客户打开链接 · 进入填写</span>
+                    </div>
+                    <div class="precheck-node-meta">precheck.status: pending → in_progress</div>
+                  </li>
+                  <li class="precheck-node">
+                    <span class="precheck-node-dot blue"></span>
+                    <div class="precheck-node-time">09-07 16:00</div>
+                    <div class="precheck-node-row">
+                      <span class="precheck-node-tag blue">submitted</span>
+                      <span class="precheck-node-label">客户已提交预审 · 转 MStar 审核</span>
+                    </div>
+                    <div class="precheck-node-meta">8/8 字段已收齐 · 触发 sop_07 wait 节点</div>
+                  </li>
+                  <li class="precheck-node">
+                    <span class="precheck-node-dot blue"></span>
+                    <div class="precheck-node-time">09-07 16:00 → 18:45</div>
+                    <div class="precheck-node-row">
+                      <span class="precheck-node-tag blue">MStar 审核中</span>
+                      <span class="precheck-node-label">金融团队评估中（约 2h45min）</span>
+                    </div>
+                    <div class="precheck-node-meta">MStar API 异步回调 · review.result 等待写入</div>
+                  </li>
+                </ul>
+              </li>
+
+              <!-- 阶段 2：当前关键（1 个 · approved） -->
+              <li class="precheck-stage">
+                <span class="precheck-stage-title active">⚡ 当前关键 · approved</span>
+                <ul class="precheck-stage-list">
+                  <li class="precheck-node precheck-node-key">
+                    <span class="precheck-node-dot green"></span>
+                    <div class="precheck-node-time">09-07 18:45</div>
+                    <div class="precheck-node-row">
+                      <span class="precheck-node-tag green">approved</span>
+                      <span class="precheck-node-label">MStar 审核通过 · HSM 已推送客户</span>
+                    </div>
+                    <div class="precheck-node-meta">hsm_precheck_result_approved_v1 · delivered 18:46 · read 18:50</div>
+                  </li>
+                </ul>
+              </li>
+
+              <!-- 阶段 3：待跟进（1 个 · 已读未回） -->
+              <li class="precheck-stage">
+                <span class="precheck-stage-title pending">⏳ 待跟进 · 1 项动作</span>
+                <ul class="precheck-stage-list">
+                  <li class="precheck-node precheck-node-key">
+                    <span class="precheck-node-dot yellow"></span>
+                    <div class="precheck-node-time">09-07 20:50 (T+2h after read)</div>
+                    <div class="precheck-node-row">
+                      <span class="precheck-node-tag yellow">已读未回</span>
+                      <span class="precheck-node-label">客户已读 HSM · 2h 未回复 · 二次提醒已排队</span>
+                    </div>
+                    <div class="precheck-node-meta">预计 9/8 18:50 自动触发 hsm_precheck_result_remind_v1 · 9/9 18:50 仍未回 → 销售侧升级</div>
+                  </li>
+                </ul>
+              </li>
+
+            </ol>
+
+            <!-- 操作按钮 -->
+            <div class="precheck-timeline-actions">
+              <a class="primary" href="统一客服收件箱-PC.html#fernanda" style="text-decoration:none;">
+                查看对话 →
+              </a>
+              <a href="收件箱-客户已收到信审结果-PC.html#approved" style="text-decoration:none;" title="看客户视角收到的 HSM">
+                客户视角演示 →
+              </a>
+              <a href="#" onclick="alert('已加备注：客户已读未回 · 销售主动联系 · 2026-09-07');return false;" style="text-decoration:none;">
+                加备注
+              </a>
+            </div>
+
+          </div>
+        </aside>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</div>
+
+
+<script>
+(function () {
+  var KEY = 'autocava_admin_sidebar_collapsed';
+  var layout = document.querySelector('.layout');
+  var btn = document.getElementById('sidebarToggle');
+  if (!layout || !btn) return;
+  function apply(collapsed) {
+    layout.classList.toggle('sidebar-collapsed', !!collapsed);
+    btn.title = collapsed ? '展开侧栏' : '收起侧栏';
+    btn.setAttribute('aria-label', btn.title);
+    try { localStorage.setItem(KEY, collapsed ? '1' : '0'); } catch (e) {}
+  }
+  var saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  apply(saved === null ? false : saved === '1');
+
+  // 调试:把状态写到 body data-attr,方便用 DevTools 看
+  try {
+    document.body.setAttribute('data-sidebar-state',
+      layout.classList.contains('sidebar-collapsed') ? 'collapsed' : 'expanded');
+    document.body.setAttribute('data-sidebar-storage', saved === null ? 'null' : saved);
+  } catch (e) {}
+  btn.addEventListener('click', function () {
+    apply(!layout.classList.contains('sidebar-collapsed'));
+  });
+})();
+</script>
+
+</body>
+</html>
