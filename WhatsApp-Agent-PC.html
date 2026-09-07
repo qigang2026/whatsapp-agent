@@ -687,23 +687,29 @@
     color: var(--success);
   }
 
-  /* v4 · 优先级建议：1 句话总结 */
+  /* v5 · 优先级建议：嵌入 P0 任务表上方（中等权重 · 升级版） */
   .priority-summary {
-    padding: 14px 18px 16px;
+    padding: 16px 18px 14px;
     border-top: 1px solid var(--border-lighter);
+    border-bottom: 1px solid var(--border-lighter);
     border-left: 3px solid #7C4DFF;
-    background: linear-gradient(90deg, rgba(124,77,255,0.06) 0%, rgba(124,77,255,0.02) 60%, transparent 100%);
+    background: linear-gradient(90deg, rgba(124,77,255,0.08) 0%, rgba(124,77,255,0.03) 60%, transparent 100%);
+  }
+  .priority-summary-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
   }
   .priority-summary-tag {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     color: #7C4DFF;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 6px;
   }
   .priority-summary-dot {
     width: 6px;
@@ -712,15 +718,108 @@
     background: #7C4DFF;
     box-shadow: 0 0 0 3px rgba(124,77,255,0.15);
   }
+  .priority-summary-count {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .priority-summary-count strong {
+    color: #7C4DFF;
+    font-weight: 700;
+  }
   .priority-summary-text {
-    font-size: 14px;
-    color: var(--text-primary);
-    line-height: 1.6;
+    font-size: 13px;
+    color: var(--text-regular);
+    line-height: 1.7;
     font-weight: 500;
+    margin-bottom: 10px;
   }
   .priority-summary-text strong {
     color: #7C4DFF;
     font-weight: 700;
+  }
+  /* mini 行动卡 · 横向一行 */
+  .priority-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .priority-mini-card {
+    background: #fff;
+    border: 1px solid var(--border-lighter);
+    border-left: 3px solid var(--danger);
+    border-radius: 6px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .priority-mini-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(65,158,254,0.08);
+  }
+  .priority-mini-card.is-warn { border-left-color: var(--warning); }
+  .priority-mini-card-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .priority-mini-num {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--danger);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .priority-mini-card.is-warn .priority-mini-num { background: var(--warning); }
+  .priority-mini-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+  .priority-mini-tag {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--danger);
+    flex-shrink: 0;
+  }
+  .priority-mini-card.is-warn .priority-mini-tag { color: var(--warning); }
+  .priority-mini-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+  .priority-mini-action {
+    font-size: 11px;
+    color: #7C4DFF;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .priority-mini-action svg { width: 10px; height: 10px; }
+  @media (max-width: 768px) {
+    .priority-summary-cards { grid-template-columns: 1fr; gap: 6px; }
+  }
+  .priority-summary-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-lighter);
+  }
+  .priority-summary-actions-label {
+    font-size: 11px;
+    color: var(--text-secondary);
   }
 
   /* v4 · KPI 5 卡网格 */
@@ -736,6 +835,9 @@
   @media (max-width: 768px) {
     .kpi-row.kpi-row-5 { grid-template-columns: repeat(2, 1fr); }
   }
+
+  /* v5 · AI Hero CSS 已废弃，改用下方 priority-summary 升级版（嵌在 P0 任务表上方） */
+
   .next-actions {
     display: flex; align-items: center; gap: 10px;
     flex-wrap: wrap;
@@ -773,6 +875,11 @@
     .today-task-table tbody td:nth-child(5)::before { content: '状态'; }
     .today-task-table tbody td:nth-child(6)::before { content: '操作'; }
     .today-task-table tbody td::before { font-size: 11px; color: var(--text-secondary); margin-right: 8px; }
+
+    /* v5 priority-mini-card 移动端 */
+    .priority-summary { padding: 12px 14px; }
+    .priority-summary-head { flex-wrap: wrap; gap: 4px; }
+    .priority-summary-count { display: none; }
   }
 
   /* Toast 提示 */
@@ -990,6 +1097,73 @@
           <span style="font-weight:700;font-size:16px;">今日工作任务</span>
         </div>
 
+        <!-- 段 0（v5 · 移到顶部）：今日优先级建议 · 放在 P0 任务表上方 -->
+        <div class="priority-summary">
+          <div class="priority-summary-head">
+            <span class="priority-summary-tag">
+              <span class="priority-summary-dot"></span>
+              <span>AI 优先级建议</span>
+            </span>
+            <span class="priority-summary-count">
+              基于 <strong>3</strong> 个 P0 待处理 · 建议按顺序立即跟进
+            </span>
+          </div>
+
+          <div class="priority-summary-text">
+            立即处理 <strong>Ana Lopez · Tiguan</strong>（SLA 即将超时），然后回电 <strong>Sofia Castillo · XPENG G9</strong>（信审通过 · 已读未回），避免 3 个 P0 升级为超时或客户流失。
+          </div>
+
+          <!-- 3 张 P0 mini 行动卡 -->
+          <div class="priority-summary-cards">
+            <div class="priority-mini-card" onclick="window.location.href='收件箱-待销售接管-PC.html#ana'">
+              <div class="priority-mini-card-top">
+                <span class="priority-mini-num">1</span>
+                <span class="priority-mini-name">Ana Lopez</span>
+                <span class="priority-mini-tag">P0</span>
+              </div>
+              <div class="priority-mini-meta">Tiguan · SLA 即将超时</div>
+              <div class="priority-mini-action">
+                立即接管 ·
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+            <div class="priority-mini-card" onclick="window.location.href='线索详情-PC.html#precheck-timeline'">
+              <div class="priority-mini-card-top">
+                <span class="priority-mini-num">2</span>
+                <span class="priority-mini-name">Sofia Castillo</span>
+                <span class="priority-mini-tag">P0</span>
+              </div>
+              <div class="priority-mini-meta">XPENG G9 · 信审通过 · 已读 2h 未回</div>
+              <div class="priority-mini-action">
+                主动回电 ·
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+            <div class="priority-mini-card is-warn" onclick="window.location.href='收件箱-待销售接管-PC.html#laura'">
+              <div class="priority-mini-card-top">
+                <span class="priority-mini-num">3</span>
+                <span class="priority-mini-name">Laura Martinez</span>
+                <span class="priority-mini-tag">P0</span>
+              </div>
+              <div class="priority-mini-meta">JAC E10X · 已超时 1h12min</div>
+              <div class="priority-mini-action">
+                认领安抚 ·
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="priority-summary-actions">
+            <span class="priority-summary-actions-label">快速操作：</span>
+            <a class="btn-action" href="统一客服收件箱-PC.html#fernanda" onclick="event.stopPropagation();">
+              去接管客户
+            </a>
+            <a class="btn-action" href="收件箱-待销售接管-PC.html" onclick="event.stopPropagation();">
+              查看超时客户
+            </a>
+          </div>
+        </div>
+
         <!-- 段 1：今日任务表格 -->
         <div class="card-body flush">
           <table class="today-task-table">
@@ -1116,28 +1290,7 @@
           </ul>
         </div>
 
-        <!-- 段 3：今日优先级建议（1 句话） -->
-        <div class="priority-summary">
-          <div class="priority-summary-tag">
-            <span class="priority-summary-dot"></span>
-            <span>AI 优先级建议</span>
-          </div>
-          <div class="priority-summary-text">
-            立即处理 <strong>Ana Lopez · Tiguan</strong>（SLA 即将超时），然后回电 <strong>Sofia Castillo · XPENG G9</strong>（信审通过 · 已读未回），避免 3 个 P0 升级为超时或客户流失。
-          </div>
-        </div>
-
-        <!-- 段 3：下一步动作（2 个快捷按钮） -->
-        <div class="card-body" style="border-top:1px dashed var(--border-lighter);padding-top:14px;">
-          <div class="next-actions">
-            <a class="btn-action" href="统一客服收件箱-PC.html#fernanda" onclick="event.stopPropagation();">
-              去接管客户
-            </a>
-            <a class="btn-action" href="收件箱-待销售接管-PC.html" onclick="event.stopPropagation();">
-              查看超时客户
-            </a>
-          </div>
-        </div>
+        <!-- 段 3：今日优先级建议已上移至 P0 任务表上方 -->
       </div>
     </div>
   </div>
