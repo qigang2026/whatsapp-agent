@@ -1854,7 +1854,7 @@
                 <div class="ycloud-actions" style="margin-left:12px;">
                   <button class="btn-sync" id="ycloud-sync-btn" onclick="syncYcloudTemplates()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                    <span id="ycloud-sync-btn-text">从 ycloud 同步</span>
+                    <span id="ycloud-sync-btn-text">重新同步</span>
                   </button>
                 </div>
               </div>
@@ -4412,10 +4412,111 @@ let hsmData = [
 
 // ========== ycloud 模板同步（Mock JSON · 模拟 GET /api/v1/whatsapp/templates 返回体） ==========
 // 字段对齐 ycloud 控制台：https://www.ycloud.com/console/#/app/dashboard/templateSetting
-// 截图中的模板（2026-09-07 15:43 同步快照）—— 用作同步按钮的演示返回体
+// 截图中的模板（2026-09-07 15:43 同步快照）—— 页面打开即展示 8 条示例数据（只读）；点「重新同步」可刷新
 // 实际接入：把 syncYcloudTemplates() 里的 mock fetch 替换为 fetch(ycloudBaseUrl + '/api/v1/whatsapp/templates', { headers: { 'X-YCloud-Token': ... }})
-let ycloudHsmData = [];              // 同步进来的只读模板（页面打开时为空，点击"从 ycloud 同步"才填充）
-let ycloudLastSync = null;           // { at: '2026-09-07 15:43', by: 'qiyezhang', count: 6 }
+let ycloudHsmData = [
+  // —— 高质量 · 已批准（活跃可用）——
+  {
+    id: 'uber_hpass_complete_noheader',
+    name: 'uber_hpass_complete_noheader',
+    category: 'UTILITY',
+    language: 'Spanish (MEX) · 西班牙语（墨西哥）',
+    status: 'APPROVED',
+    quality: 'HIGH',
+    delivered: 1,
+    read: 1,
+    preview: '¡Buenas noticias {{1}}! Tu evaluación fue aprobada. Un asesor de AutoCava te contactará para coordinar los siguientes pasos de tu {{2}}.',
+    updatedAt: '2026-09-01 06:22:08'
+  },
+  {
+    id: 'uber_hpass_incomplete_noheader',
+    name: 'uber_hpass_incomplete_noheader',
+    category: 'UTILITY',
+    language: 'Spanish (MEX) · 西班牙语（墨西哥）',
+    status: 'APPROVED',
+    quality: 'HIGH',
+    delivered: 2,
+    read: 2,
+    preview: 'Hola {{1}}, necesitamos un documento adicional para completar tu evaluación: {{2}}. ¿Podrías compartirlo por este medio?',
+    updatedAt: '2026-09-01 03:47:34'
+  },
+  {
+    id: 'uber_nohpass_noheader',
+    name: 'uber_nohpass_noheader',
+    category: 'UTILITY',
+    language: 'Spanish (MEX) · 西班牙语（墨西哥）',
+    status: 'APPROVED',
+    quality: 'HIGH',
+    delivered: 5,
+    read: 5,
+    preview: 'Hola {{1}}, tu evaluación ha sido procesada. Para continuar con los siguientes pasos, por favor confirma la información que te compartimos previamente.',
+    updatedAt: '2026-09-02 01:40:44'
+  },
+  // —— 中质量 · 待 Meta 审核（已提交）——
+  {
+    id: 'comofunciona_uber',
+    name: 'comofunciona_uber',
+    category: 'MARKETING',
+    language: 'Spanish (MEX) · 西班牙语（墨西哥）',
+    status: 'PENDING',
+    quality: 'MEDIUM',
+    delivered: 0,
+    read: 0,
+    preview: 'Hola {{1}}, queremos compartirte cómo funciona la opción de financiar tu {{2}} a través de Uber / plataforma. ¿Te gustaría recibir más información?',
+    updatedAt: '2026-09-05 07:00:03'
+  },
+  {
+    id: 'checklist_uber_documentos',
+    name: 'checklist_uber_documentos',
+    category: 'MARKETING',
+    language: 'Spanish (MEX) · 西班牙语（墨西哥）',
+    status: 'PENDING',
+    quality: 'MEDIUM',
+    delivered: 0,
+    read: 0,
+    preview: 'Hola {{1}}, te compartimos el checklist de documentos que necesitaremos para avanzar con tu evaluación financiera del {{2}}. Cualquier duda, estoy atento.',
+    updatedAt: '2026-09-05 05:12:45'
+  },
+  {
+    id: 'uber_hpass_incomplete',
+    name: 'uber_hpass_incomplete',
+    category: 'UTILITY',
+    language: 'Spanish (MEX) · 西班牙语（墨西哥）',
+    status: 'PENDING',
+    quality: 'MEDIUM',
+    delivered: 0,
+    read: 0,
+    preview: 'Hola {{1}}, faltan algunos datos para terminar tu solicitud. Por favor revisa el enlace que te compartimos y completa los campos pendientes.',
+    updatedAt: '2026-09-01 03:19:23'
+  },
+  // —— 已暂停（演示 PAUSED 状态）——
+  {
+    id: 'promo_finanzamiento_q4',
+    name: 'promo_finanzamiento_q4',
+    category: 'MARKETING',
+    language: 'Spanish (MEX) · 西班牙语（墨西哥）',
+    status: 'PAUSED',
+    quality: 'MEDIUM',
+    delivered: 38,
+    read: 21,
+    preview: 'Hola {{1}}, tenemos una promoción especial de financiamiento este trimestre para tu {{2}}. Aprovecha las condiciones preferenciales vigentes hasta fin de mes.',
+    updatedAt: '2026-08-25 11:14:00'
+  },
+  // —— 已拒绝（演示 REJECTED 状态 · Meta 真实拒绝原因）——
+  {
+    id: 'buro_score_request_v1',
+    name: 'buro_score_request_v1',
+    category: 'UTILITY',
+    language: 'Spanish (MEX) · 西班牙语（墨西哥）',
+    status: 'REJECTED',
+    quality: 'LOW',
+    delivered: 0,
+    read: 0,
+    preview: 'Hola {{1}}, para continuar con tu evaluación del {{2}}, por favor comparte tu buró de crédito actualizado.',
+    updatedAt: '2026-08-20 09:08:21'
+  }
+];
+let ycloudLastSync = { at: '2026-09-07 15:43', by: 'qiyezhang', count: 8 }; // 上次同步时间（页面打开即显示）
 let ycloudSyncing = false;           // 同步中状态
 const ycloudTemplateBaseUrl = 'https://www.ycloud.com/console/#/app/dashboard/templateSetting/edit/';
 
@@ -4446,7 +4547,7 @@ function renderYcloudHsm() {
     body.innerHTML =
       '<div class="ycloud-empty">' +
         '<div class="ycloud-empty-title">尚未同步</div>' +
-        '<div>点击右上角「从 ycloud 同步」拉取已审核通过的模板。</div>' +
+        '<div>点击右上角「重新同步」拉取 ycloud 控制台最新模板列表。</div>' +
         '<div class="ycloud-empty-tip" style="margin-top:8px;">来源 <code>https://www.ycloud.com/console/#/app/dashboard/templateSetting</code></div>' +
       '</div>';
     metaText.textContent = '未同步';
@@ -4516,87 +4617,16 @@ function syncYcloudTemplates() {
   btnText.textContent = '同步中…';
   renderYcloudHsm();
 
-  // ===== Mock：模拟 ycloud API 返回（用 setTimeout 模拟网络延时） =====
+  // ===== Mock：模拟 ycloud API 拉取（用 setTimeout 模拟网络延时） =====
   // 真实接入：fetch(ycloudBaseUrl + '/api/v1/whatsapp/templates', { headers: { 'X-YCloud-Token': '...' }})
   //          .then(r => r.json()).then(j => { ycloudHsmData = j.data; ycloudLastSync = {...}; renderYcloudHsm(); })
   setTimeout(function() {
-    // 截图里的 6 条模板（2026-09-07 15:43 同步快照）
-    ycloudHsmData = [
-      {
-        id: 'comofunciona_uber',
-        name: 'comofunciona_uber',
-        category: 'MARKETING',
-        language: 'Spanish (MEX) · 西班牙语（墨西哥）',
-        status: 'PENDING',
-        quality: 'MEDIUM',
-        delivered: 0,
-        read: 0,
-        preview: 'Hola {{1}}, queremos compartirte cómo funciona la opción de financiar tu {{2}} a través de Uber / plataforma. ¿Te gustaría recibir más información?',
-        updatedAt: '2026-09-05 07:00:03'
-      },
-      {
-        id: 'checklist_uber_documentos',
-        name: 'checklist_uber_documentos',
-        category: 'MARKETING',
-        language: 'Spanish (MEX) · 西班牙语（墨西哥）',
-        status: 'PENDING',
-        quality: 'MEDIUM',
-        delivered: 0,
-        read: 0,
-        preview: 'Hola {{1}}, te compartimos el checklist de documentos que necesitaremos para avanzar con tu evaluación financiera del {{2}}. Cualquier duda, estoy atento.',
-        updatedAt: '2026-09-05 05:12:45'
-      },
-      {
-        id: 'uber_nohpass_noheader',
-        name: 'uber_nohpass_noheader',
-        category: 'UTILITY',
-        language: 'Spanish (MEX) · 西班牙语（墨西哥）',
-        status: 'APPROVED',
-        quality: 'HIGH',
-        delivered: 5,
-        read: 5,
-        preview: 'Hola {{1}}, tu evaluación ha sido procesada. Para continuar con los siguientes pasos, por favor confirma la información que te compartimos previamente.',
-        updatedAt: '2026-09-02 01:40:44'
-      },
-      {
-        id: 'uber_hpass_complete_noheader',
-        name: 'uber_hpass_complete_noheader',
-        category: 'UTILITY',
-        language: 'Spanish (MEX) · 西班牙语（墨西哥）',
-        status: 'APPROVED',
-        quality: 'HIGH',
-        delivered: 1,
-        read: 1,
-        preview: '¡Buenas noticias {{1}}! Tu evaluación fue aprobada. Un asesor de AutoCava te contactará para coordinar los siguientes pasos de tu {{2}}.',
-        updatedAt: '2026-09-01 06:22:08'
-      },
-      {
-        id: 'uber_hpass_incomplete_noheader',
-        name: 'uber_hpass_incomplete_noheader',
-        category: 'UTILITY',
-        language: 'Spanish (MEX) · 西班牙语（墨西哥）',
-        status: 'APPROVED',
-        quality: 'HIGH',
-        delivered: 2,
-        read: 2,
-        preview: 'Hola {{1}}, necesitamos un documento adicional para completar tu evaluación: {{2}}. ¿Podrías compartirlo por este medio?',
-        updatedAt: '2026-09-01 03:47:34'
-      },
-      {
-        id: 'uber_hpass_incomplete',
-        name: 'uber_hpass_incomplete',
-        category: 'UTILITY',
-        language: 'Spanish (MEX) · 西班牙语（墨西哥）',
-        status: 'PENDING',
-        quality: 'MEDIUM',
-        delivered: 0,
-        read: 0,
-        preview: 'Hola {{1}}, faltan algunos datos para terminar tu solicitud. Por favor revisa el enlace que te compartimos y completa los campos pendientes.',
-        updatedAt: '2026-09-01 03:19:23'
-      }
-    ];
+    // 这里不再覆盖 ycloudHsmData —— 数据来自脚本顶部预填的示例快照
+    // 真实接入时改为 ycloudHsmData = j.data;
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
     ycloudLastSync = {
-      at: '2026-09-07 15:43',
+      at: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()),
       by: 'qiyezhang',
       count: ycloudHsmData.length
     };
@@ -4680,7 +4710,7 @@ function renderHsmTable() {
       '<td style="white-space:nowrap;">' + actions.join(' ') + '</td>' +
     '</tr>';
   }).join('');
-  document.getElementById('inner-count-hsm').textContent = hsmData.length;
+  document.getElementById('inner-count-hsm').textContent = hsmData.length + (ycloudHsmData ? ycloudHsmData.length : 0);
 }
 
 function openNewHsmDrawer() { openHsmDrawer(null); }
