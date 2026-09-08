@@ -4519,22 +4519,7 @@ function initCanvasInteractions() {
     }
   });
 
-  // 滚轮缩放
-  svg.addEventListener('wheel', e => {
-    e.preventDefault();
-    const rect = svg.getBoundingClientRect();
-    const cx = e.clientX - rect.left;
-    const cy = e.clientY - rect.top;
-    const factor = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.max(0.3, Math.min(2.5, canvasState.zoom * factor));
-    // 以鼠标位置为锚点缩放
-    canvasState.panX = cx - (cx - canvasState.panX) * (newZoom / canvasState.zoom);
-    canvasState.panY = cy - (cy - canvasState.panY) * (newZoom / canvasState.zoom);
-    canvasState.zoom = newZoom;
-    updateCanvasTransform();
-  }, { passive: false });
-
-  // 工具栏
+  // 工具栏按钮缩放（不用滚轮缩放，保证画布拖拽可靠性）
   const zin = document.getElementById('btn-zoom-in');
   const zout = document.getElementById('btn-zoom-out');
   const zreset = document.getElementById('btn-reset-view');
